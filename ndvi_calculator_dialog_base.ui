@@ -16,8 +16,8 @@
   <widget class="QDialogButtonBox" name="button_box">
    <property name="geometry">
     <rect>
-     <x>380</x>
-     <y>10</y>
+     <x>410</x>
+     <y>80</y>
      <width>341</width>
      <height>32</height>
     </rect>
@@ -32,7 +32,7 @@
   <widget class="QComboBox" name="cbx_layers">
    <property name="geometry">
     <rect>
-     <x>80</x>
+     <x>40</x>
      <y>10</y>
      <width>181</width>
      <height>22</height>
@@ -42,8 +42,8 @@
   <widget class="QPushButton" name="btn_test">
    <property name="geometry">
     <rect>
-     <x>310</x>
-     <y>10</y>
+     <x>480</x>
+     <y>260</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -56,13 +56,36 @@
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>60</y>
-     <width>621</width>
-     <height>541</height>
+     <y>200</y>
+     <width>341</width>
+     <height>401</height>
     </rect>
    </property>
    <property name="text">
     <string>TextLabel</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btn_output_file">
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>10</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>output file</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="led_output_file">
+   <property name="geometry">
+    <rect>
+     <x>410</x>
+     <y>10</y>
+     <width>211</width>
+     <height>20</height>
+    </rect>
    </property>
   </widget>
  </widget>

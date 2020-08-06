@@ -198,6 +198,8 @@ class ndvi_calculator:
 
         self.dlg.btn_test.clicked.connect(self.btn_test)
 
+        self.dlg.btn_test.clicked.connect(self.btn_test)
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -205,11 +207,14 @@ class ndvi_calculator:
 
         # See if OK was pressed
         if result:
+            if not self.dlg.led_output_file.text():
+                self.dlg.show_file_name_error()
+                return
+
             raster_layer = map_layer_registry.mapLayersByName(str(self.dlg.cbx_layers.currentText()))[0]
             map_layer_registry.addMapLayer(self.calculateNdvi(raster_layer))
 
-    @staticmethod
-    def calculateNdvi(raster_layer):
+    def calculateNdvi(self, raster_layer):
         r = QgsRasterCalculatorEntry()
         ir = QgsRasterCalculatorEntry()
 
@@ -223,48 +228,48 @@ class ndvi_calculator:
         ir.ref = raster_layer.name() + "@4"
 
         references = (ir.ref, r.ref, ir.ref, r.ref)
-        formulaString = "(%s - %s) / (%s + %s)" % references
+        formula_string = "(%raster_shader - %raster_shader) / (%raster_shader + %raster_shader)" % references
 
-        outputFile = "c:/Users/evdok/Desktop/result.tif"
-        outputFormat = "GTiff"
-        outputExtent = raster_layer.extent()
-        nOutputColumns = raster_layer.width()
-        nOutputRows = raster_layer.height()
-        rasterEntries = [ir, r]
+        output_file = self.dlg.led_output_file.text()
+        output_format = "GTiff"
+        output_extent = raster_layer.extent()
+        n_output_columns = raster_layer.width()
+        n_output_rows = raster_layer.height()
+        raster_entries = [ir, r]
 
-        ndvi = QgsRasterCalculator(formulaString,
-                                   outputFile,
-                                   outputFormat,
-                                   outputExtent,
-                                   nOutputColumns,
-                                   nOutputRows,
-                                   rasterEntries)
-        ndvi.processCalculation()
+        ndvi_raster_calculator = QgsRasterCalculator(formula_string,
+                                   output_file,
+                                   output_format,
+                                   output_extent,
+                                   n_output_columns,
+                                   n_output_rows,
+                                   raster_entries)
+        ndvi_raster_calculator.processCalculation()
 
-        ndviRasterLayer = QgsRasterLayer(outputFile, "NDVI")
+        ndvi_raster_layer = QgsRasterLayer(output_file, "NDVI")
 
         algorithm = QgsContrastEnhancement.StretchToMinimumMaximum
         limits = QgsRaster.ContrastEnhancementMinMax
-        ndviRasterLayer.setContrastEnhancement(algorithm, limits)
+        ndvi_raster_layer.setContrastEnhancement(algorithm, limits)
 
-        s = QgsRasterShader()
-        c = QgsColorRampShader()
-        c.setColorRampType(QgsColorRampShader.INTERPOLATED)
+        raster_shader = QgsRasterShader()
+        color_ramp_shader = QgsColorRampShader()
+        color_ramp_shader.setColorRampType(QgsColorRampShader.INTERPOLATED)
 
-        i = []
+        color_list = []
         qri = QgsColorRampShader.ColorRampItem
-        i.append(qri(-1, QColor(4, 18, 60, 255), "<0"))
-        i.append(qri(0, QColor(148, 114, 60, 255), "0-0.25"))
-        i.append(qri(0.25, QColor(148, 182, 20, 255), "0.25-0.5"))
-        i.append(qri(0.5, QColor(60, 134, 4, 255), "0.5-0.75"))
-        i.append(qri(0.75, QColor(4, 38, 4, 255), ">0.75"))
+        color_list.append(qri(-1, QColor(4, 18, 60, 255), "<0"))
+        color_list.append(qri(0, QColor(148, 114, 60, 255), "0-0.25"))
+        color_list.append(qri(0.25, QColor(148, 182, 20, 255), "0.25-0.5"))
+        color_list.append(qri(0.5, QColor(60, 134, 4, 255), "0.5-0.75"))
+        color_list.append(qri(0.75, QColor(4, 38, 4, 255), ">0.75"))
 
-        c.setColorRampItemList(i)
-        s.setRasterShaderFunction(c)
-        ps = QgsSingleBandPseudoColorRenderer(ndviRasterLayer.dataProvider(), 1, s)
-        ndviRasterLayer.setRenderer(ps)
+        color_ramp_shader.setColorRampItemList(color_list)
+        raster_shader.setRasterShaderFunction(color_ramp_shader)
+        ps = QgsSingleBandPseudoColorRenderer(ndvi_raster_layer.dataProvider(), 1, raster_shader)
+        ndvi_raster_layer.setRenderer(ps)
 
-        return ndviRasterLayer
+        return ndvi_raster_layer
 
     def btn_test(self):
         pass
