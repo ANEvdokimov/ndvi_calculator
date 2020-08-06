@@ -20,9 +20,20 @@
  *                                                                         *
  ***************************************************************************/
 """
+from PyQt4 import QtGui
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
-from PyQt4.QtGui import QAction, QIcon
+from PyQt4.QtGui import QAction, QIcon, QColor, QPixmap, QImage
+from PyQt4.QtXml import QDomDocument
 # Initialize Qt resources from file resources.py
+from qgis._core import (QgsMapLayerRegistry,
+                        QgsRasterLayer,
+                        QgsRaster,
+                        QgsContrastEnhancement,
+                        QgsRasterShader,
+                        QgsColorRampShader,
+                        QgsSingleBandPseudoColorRenderer)
+from qgis._analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
+
 import resources
 # Import the code for the dialog
 from ndvi_calculator_dialog import ndvi_calculatorDialog
@@ -58,7 +69,6 @@ class ndvi_calculator:
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
 
-
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&NDVI Calculator')
@@ -81,18 +91,17 @@ class ndvi_calculator:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('ndvi_calculator', message)
 
-
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            parent=None):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -168,7 +177,6 @@ class ndvi_calculator:
             callback=self.run,
             parent=self.iface.mainWindow())
 
-
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -179,15 +187,17 @@ class ndvi_calculator:
         # remove the toolbar
         del self.toolbar
 
-
     def run(self):
         """Run method that performs all the real work"""
-        layers = self.iface.legendInterface().layers()
-        layer_list = []
-        for layer in layers:
-            layer_list.append(layer.name())
+        map_layer_registry = QgsMapLayerRegistry.instance()
+        layers = map_layer_registry.mapLayers()
+        self.dlg.cbx_layers.clear()
 
-        self.dlg.cbx_layers.addItems(layer_list)
+        for name, raster_layer in layers.iteritems():
+            self.dlg.cbx_layers.addItem(raster_layer.name())
+
+        self.dlg.btn_test.clicked.connect(self.btn_test)
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -195,6 +205,66 @@ class ndvi_calculator:
 
         # See if OK was pressed
         if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass
+            raster_layer = map_layer_registry.mapLayersByName(str(self.dlg.cbx_layers.currentText()))[0]
+            map_layer_registry.addMapLayer(self.calculateNdvi(raster_layer))
+
+    @staticmethod
+    def calculateNdvi(raster_layer):
+        r = QgsRasterCalculatorEntry()
+        ir = QgsRasterCalculatorEntry()
+
+        r.raster = raster_layer
+        ir.raster = raster_layer
+
+        r.bandNumber = 3
+        ir.bandNumber = 4
+
+        r.ref = raster_layer.name() + "@3"
+        ir.ref = raster_layer.name() + "@4"
+
+        references = (ir.ref, r.ref, ir.ref, r.ref)
+        formulaString = "(%s - %s) / (%s + %s)" % references
+
+        outputFile = "c:/Users/evdok/Desktop/result.tif"
+        outputFormat = "GTiff"
+        outputExtent = raster_layer.extent()
+        nOutputColumns = raster_layer.width()
+        nOutputRows = raster_layer.height()
+        rasterEntries = [ir, r]
+
+        ndvi = QgsRasterCalculator(formulaString,
+                                   outputFile,
+                                   outputFormat,
+                                   outputExtent,
+                                   nOutputColumns,
+                                   nOutputRows,
+                                   rasterEntries)
+        ndvi.processCalculation()
+
+        ndviRasterLayer = QgsRasterLayer(outputFile, "NDVI")
+
+        algorithm = QgsContrastEnhancement.StretchToMinimumMaximum
+        limits = QgsRaster.ContrastEnhancementMinMax
+        ndviRasterLayer.setContrastEnhancement(algorithm, limits)
+
+        s = QgsRasterShader()
+        c = QgsColorRampShader()
+        c.setColorRampType(QgsColorRampShader.INTERPOLATED)
+
+        i = []
+        qri = QgsColorRampShader.ColorRampItem
+        i.append(qri(-1, QColor(4, 18, 60, 255), "<0"))
+        i.append(qri(0, QColor(148, 114, 60, 255), "0-0.25"))
+        i.append(qri(0.25, QColor(148, 182, 20, 255), "0.25-0.5"))
+        i.append(qri(0.5, QColor(60, 134, 4, 255), "0.5-0.75"))
+        i.append(qri(0.75, QColor(4, 38, 4, 255), ">0.75"))
+
+        c.setColorRampItemList(i)
+        s.setRasterShaderFunction(c)
+        ps = QgsSingleBandPseudoColorRenderer(ndviRasterLayer.dataProvider(), 1, s)
+        ndviRasterLayer.setRenderer(ps)
+
+        return ndviRasterLayer
+
+    def btn_test(self):
+        pass

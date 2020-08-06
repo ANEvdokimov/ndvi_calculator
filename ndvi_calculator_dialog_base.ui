@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>383</width>
-    <height>162</height>
+    <width>832</width>
+    <height>624</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,8 +16,8 @@
   <widget class="QDialogButtonBox" name="button_box">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>110</y>
+     <x>380</x>
+     <y>10</y>
      <width>341</width>
      <height>32</height>
     </rect>
@@ -32,11 +32,37 @@
   <widget class="QComboBox" name="cbx_layers">
    <property name="geometry">
     <rect>
-     <x>100</x>
-     <y>50</y>
+     <x>80</x>
+     <y>10</y>
      <width>181</width>
      <height>22</height>
     </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="btn_test">
+   <property name="geometry">
+    <rect>
+     <x>310</x>
+     <y>10</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>PushButton</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lbl_output">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>60</y>
+     <width>621</width>
+     <height>541</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TextLabel</string>
    </property>
   </widget>
  </widget>
