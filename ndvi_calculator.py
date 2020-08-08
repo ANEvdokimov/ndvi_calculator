@@ -212,7 +212,9 @@ class ndvi_calculator:
                 return
 
             raster_layer = map_layer_registry.mapLayersByName(str(self.dlg.cbx_layers.currentText()))[0]
-            map_layer_registry.addMapLayer(self.calculateNdvi(raster_layer))
+            ndvi_layers_list = self.calculateNdvi(raster_layer)
+            for layer in ndvi_layers_list:
+                map_layer_registry.addMapLayer(layer)
 
     def calculateNdvi(self, raster_layer):
         r = QgsRasterCalculatorEntry()
@@ -238,38 +240,87 @@ class ndvi_calculator:
         raster_entries = [ir, r]
 
         ndvi_raster_calculator = QgsRasterCalculator(formula_string,
-                                   output_file,
-                                   output_format,
-                                   output_extent,
-                                   n_output_columns,
-                                   n_output_rows,
-                                   raster_entries)
+                                                     output_file,
+                                                     output_format,
+                                                     output_extent,
+                                                     n_output_columns,
+                                                     n_output_rows,
+                                                     raster_entries)
         ndvi_raster_calculator.processCalculation()
 
-        ndvi_raster_layer = QgsRasterLayer(output_file, "NDVI")
+        ndvi0_raster_layer = QgsRasterLayer(output_file, "NDVI - <0")
+        ndvi025_raster_layer = QgsRasterLayer(output_file, "NDVI - 0-0.25")
+        ndvi05_raster_layer = QgsRasterLayer(output_file, "NDVI - 0.25-0.5")
+        ndvi075_raster_layer = QgsRasterLayer(output_file, "NDVI - 0.5-0.75")
+        ndvi1_raster_layer = QgsRasterLayer(output_file, "NDVI - 0.75-1")
 
         algorithm = QgsContrastEnhancement.StretchToMinimumMaximum
         limits = QgsRaster.ContrastEnhancementMinMax
-        ndvi_raster_layer.setContrastEnhancement(algorithm, limits)
+        ndvi0_raster_layer.setContrastEnhancement(algorithm, limits)
+        ndvi025_raster_layer.setContrastEnhancement(algorithm, limits)
+        ndvi05_raster_layer.setContrastEnhancement(algorithm, limits)
+        ndvi075_raster_layer.setContrastEnhancement(algorithm, limits)
+        ndvi1_raster_layer.setContrastEnhancement(algorithm, limits)
 
+        ndvi0_raster_layer.setRenderer(
+            self.getRenderer(ndvi0_raster_layer.dataProvider(), self.getColorMapForNdvi0()))
+        ndvi025_raster_layer.setRenderer(
+            self.getRenderer(ndvi025_raster_layer.dataProvider(), self.getColorMapForNdvi025()))
+        ndvi05_raster_layer.setRenderer(
+            self.getRenderer(ndvi05_raster_layer.dataProvider(), self.getColorMapForNdvi05()))
+        ndvi075_raster_layer.setRenderer(
+            self.getRenderer(ndvi075_raster_layer.dataProvider(), self.getColorMapForNdvi075()))
+        ndvi1_raster_layer.setRenderer(
+            self.getRenderer(ndvi1_raster_layer.dataProvider(), self.getColorMapForNdvi1()))
+
+        return [ndvi0_raster_layer, ndvi025_raster_layer, ndvi05_raster_layer, ndvi075_raster_layer, ndvi1_raster_layer]
+
+    def getRenderer(self, layer_data_provider, color_map):
         raster_shader = QgsRasterShader()
         color_ramp_shader = QgsColorRampShader()
-        color_ramp_shader.setColorRampType(QgsColorRampShader.INTERPOLATED)
+        color_ramp_shader.setColorRampType(QgsColorRampShader.DISCRETE)
 
+        color_ramp_shader.setColorRampItemList(color_map)
+        raster_shader.setRasterShaderFunction(color_ramp_shader)
+        return QgsSingleBandPseudoColorRenderer(layer_data_provider, 1, raster_shader)
+
+    def getColorMapForNdvi0(self):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
-        color_list.append(qri(-1, QColor(4, 18, 60, 255), "<0"))
-        color_list.append(qri(0, QColor(148, 114, 60, 255), "0-0.25"))
-        color_list.append(qri(0.25, QColor(148, 182, 20, 255), "0.25-0.5"))
-        color_list.append(qri(0.5, QColor(60, 134, 4, 255), "0.5-0.75"))
-        color_list.append(qri(0.75, QColor(4, 38, 4, 255), ">0.75"))
+        color_list.append(qri(0, QColor(4, 18, 60, 255), "<0"))
+        color_list.append(qri(1, QColor(0, 0, 0, 0), ">0"))
+        return color_list
 
-        color_ramp_shader.setColorRampItemList(color_list)
-        raster_shader.setRasterShaderFunction(color_ramp_shader)
-        ps = QgsSingleBandPseudoColorRenderer(ndvi_raster_layer.dataProvider(), 1, raster_shader)
-        ndvi_raster_layer.setRenderer(ps)
+    def getColorMapForNdvi025(self):
+        color_list = []
+        qri = QgsColorRampShader.ColorRampItem
+        color_list.append(qri(0, QColor(0, 0, 0, 0), "<0"))
+        color_list.append(qri(0.25, QColor(148, 114, 60, 255), "0-0.25"))
+        color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.25"))
+        return color_list
 
-        return ndvi_raster_layer
+    def getColorMapForNdvi05(self):
+        color_list = []
+        qri = QgsColorRampShader.ColorRampItem
+        color_list.append(qri(0.25, QColor(0, 0, 0, 0), "<0.25"))
+        color_list.append(qri(0.5, QColor(148, 182, 20, 255), "0.25-0.5"))
+        color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.5"))
+        return color_list
+
+    def getColorMapForNdvi075(self):
+        color_list = []
+        qri = QgsColorRampShader.ColorRampItem
+        color_list.append(qri(0.5, QColor(0, 0, 0, 0), "<0.5"))
+        color_list.append(qri(0.75, QColor(60, 134, 4, 255), "0.5-0.75"))
+        color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.75"))
+        return color_list
+
+    def getColorMapForNdvi1(self):
+        color_list = []
+        qri = QgsColorRampShader.ColorRampItem
+        color_list.append(qri(0.75, QColor(0, 0, 0, 0), "<0.75"))
+        color_list.append(qri(1, QColor(4, 38, 4, 255), ">0.75"))
+        return color_list
 
     def btn_test(self):
         pass
