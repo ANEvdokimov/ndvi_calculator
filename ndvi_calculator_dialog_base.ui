@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>832</width>
-    <height>624</height>
+    <width>373</width>
+    <height>137</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,8 +16,8 @@
   <widget class="QDialogButtonBox" name="button_box">
    <property name="geometry">
     <rect>
-     <x>410</x>
-     <y>80</y>
+     <x>20</x>
+     <y>90</y>
      <width>341</width>
      <height>32</height>
     </rect>
@@ -32,60 +32,60 @@
   <widget class="QComboBox" name="cbx_layers">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>10</y>
-     <width>181</width>
+     <x>130</x>
+     <y>20</y>
+     <width>231</width>
      <height>22</height>
     </rect>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="btn_test">
-   <property name="geometry">
-    <rect>
-     <x>480</x>
-     <y>260</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>PushButton</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="lbl_output">
-   <property name="geometry">
-    <rect>
-     <x>40</x>
-     <y>200</y>
-     <width>341</width>
-     <height>401</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>TextLabel</string>
    </property>
   </widget>
   <widget class="QPushButton" name="btn_output_file">
    <property name="geometry">
     <rect>
-     <x>650</x>
-     <y>10</y>
-     <width>75</width>
+     <x>320</x>
+     <y>60</y>
+     <width>41</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>output file</string>
+    <string>...</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="led_output_file">
    <property name="geometry">
     <rect>
-     <x>410</x>
-     <y>10</y>
-     <width>211</width>
+     <x>130</x>
+     <y>60</y>
+     <width>181</width>
      <height>20</height>
     </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>20</y>
+     <width>81</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Исходный слой</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>60</y>
+     <width>101</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Слой результатов</string>
    </property>
   </widget>
  </widget>

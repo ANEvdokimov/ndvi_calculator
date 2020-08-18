@@ -20,24 +20,21 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4 import QtGui
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
-from PyQt4.QtGui import QAction, QIcon, QColor, QPixmap, QImage
-from PyQt4.QtXml import QDomDocument
-# Initialize Qt resources from file resources.py
-from qgis._core import (QgsMapLayerRegistry,
-                        QgsRasterLayer,
-                        QgsRaster,
-                        QgsContrastEnhancement,
-                        QgsRasterShader,
-                        QgsColorRampShader,
-                        QgsSingleBandPseudoColorRenderer)
-from qgis._analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
+import os.path
 
-import resources
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+from PyQt4.QtGui import QAction, QIcon, QColor
+from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
+from qgis.core import (QgsMapLayerRegistry,
+                       QgsRasterLayer,
+                       QgsRaster,
+                       QgsContrastEnhancement,
+                       QgsRasterShader,
+                       QgsColorRampShader,
+                       QgsSingleBandPseudoColorRenderer)
+
 # Import the code for the dialog
 from ndvi_calculator_dialog import ndvi_calculatorDialog
-import os.path
 
 
 class ndvi_calculator:
@@ -196,10 +193,6 @@ class ndvi_calculator:
         for name, raster_layer in layers.iteritems():
             self.dlg.cbx_layers.addItem(raster_layer.name())
 
-        self.dlg.btn_test.clicked.connect(self.btn_test)
-
-        self.dlg.btn_test.clicked.connect(self.btn_test)
-
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -321,6 +314,3 @@ class ndvi_calculator:
         color_list.append(qri(0.75, QColor(0, 0, 0, 0), "<0.75"))
         color_list.append(qri(1, QColor(4, 38, 4, 255), ">0.75"))
         return color_list
-
-    def btn_test(self):
-        pass
