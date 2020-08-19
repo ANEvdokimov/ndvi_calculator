@@ -21,9 +21,12 @@
  ***************************************************************************/
 """
 import os.path
+import collections
 
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon, QColor
+from band_information import BandInformation
+from ndvi_calculator_dialog import ndvi_calculatorDialog
 from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 from qgis.core import (QgsMapLayerRegistry,
                        QgsRasterLayer,
@@ -32,9 +35,6 @@ from qgis.core import (QgsMapLayerRegistry,
                        QgsRasterShader,
                        QgsColorRampShader,
                        QgsSingleBandPseudoColorRenderer)
-
-# Import the code for the dialog
-from ndvi_calculator_dialog import ndvi_calculatorDialog
 
 
 class ndvi_calculator:
@@ -189,9 +189,12 @@ class ndvi_calculator:
         map_layer_registry = QgsMapLayerRegistry.instance()
         layers = map_layer_registry.mapLayers()
         self.dlg.cbx_layers.clear()
+        self.dlg.cbx_layers.currentIndexChanged.connect(self.showBandsNames)
 
         for name, raster_layer in layers.iteritems():
             self.dlg.cbx_layers.addItem(raster_layer.name())
+
+        self.dlg.btn_debug.clicked.connect(self.debug_f)
 
         # show the dialog
         self.dlg.show()
@@ -205,25 +208,29 @@ class ndvi_calculator:
                 return
 
             raster_layer = map_layer_registry.mapLayersByName(str(self.dlg.cbx_layers.currentText()))[0]
-            ndvi_layers_list = self.calculateNdvi(raster_layer)
+            bands = self.getBandsFromLayer(raster_layer)
+            red_band = bands[self.dlg.cbx_red_color.currentText()]
+            infrared_band = bands[self.dlg.cbx_infrared.currentText()]
+
+            ndvi_layers_list = self.calculateNdvi(raster_layer, red_band.serial_number, infrared_band.serial_number)
             for layer in ndvi_layers_list:
                 map_layer_registry.addMapLayer(layer)
 
-    def calculateNdvi(self, raster_layer):
+    def calculateNdvi(self, raster_layer, red_band_number, infrared_band_number):
         r = QgsRasterCalculatorEntry()
         ir = QgsRasterCalculatorEntry()
 
         r.raster = raster_layer
         ir.raster = raster_layer
 
-        r.bandNumber = 3
-        ir.bandNumber = 4
+        r.bandNumber = red_band_number
+        ir.bandNumber = infrared_band_number
 
-        r.ref = raster_layer.name() + "@3"
-        ir.ref = raster_layer.name() + "@4"
+        r.ref = raster_layer.name() + "@" + str(red_band_number)
+        ir.ref = raster_layer.name() + "@" + str(infrared_band_number)
 
         references = (ir.ref, r.ref, ir.ref, r.ref)
-        formula_string = "(%raster_shader - %raster_shader) / (%raster_shader + %raster_shader)" % references
+        formula_string = "(%s - %s) / (%s + %s)" % references
 
         output_file = self.dlg.led_output_file.text()
         output_format = "GTiff"
@@ -314,3 +321,58 @@ class ndvi_calculator:
         color_list.append(qri(0.75, QColor(0, 0, 0, 0), "<0.75"))
         color_list.append(qri(1, QColor(4, 38, 4, 255), ">0.75"))
         return color_list
+
+    def showBandsNames(self):
+        bands_dictionary = self.getBandsFromCurrentLayer()
+        sorted(bands_dictionary)
+
+        self.dlg.cbx_red_color.clear()
+        self.dlg.cbx_infrared.clear()
+
+        index = 0
+        for band_information in bands_dictionary.values():
+            self.dlg.cbx_red_color.addItem(band_information.full_name)
+            if band_information.color_interpretation == 3:
+                self.dlg.cbx_red_color.setCurrentIndex(index)
+
+            self.dlg.cbx_infrared.addItem(band_information.full_name)
+            if band_information.color_interpretation == 0:
+                self.dlg.cbx_infrared.setCurrentIndex(index)
+
+            index += 1
+
+    def getBandsFromCurrentLayer(self):
+        return self.getBandsFromLayer(self.getCurrentLayerFromDialogWindow())
+
+    def getBandsFromLayer(self, raster_layer):
+        layer_data_provider = raster_layer.dataProvider()
+
+        bands = {}
+        for band_number in range(1, raster_layer.bandCount() + 1):
+            band = BandInformation(layer_data_provider.colorInterpretationName(band_number),
+                                   band_number,
+                                   layer_data_provider.colorInterpretation(band_number))
+            bands[band.full_name] = band
+
+        return collections.OrderedDict(sorted(bands.items()))
+
+    def getCurrentLayerFromDialogWindow(self):
+        map_layer_registry = QgsMapLayerRegistry.instance()
+        return map_layer_registry.mapLayersByName(str(self.dlg.cbx_layers.currentText()))[0]
+
+    def debug_f(self):
+        map_layer_registry = QgsMapLayerRegistry.instance()
+        raster_layer = map_layer_registry.mapLayersByName(str(self.dlg.cbx_layers.currentText()))[0]
+
+        # with open("c:/Users/evdok/Desktop/metadata-landsat7.txt", "w") as met:
+        #     met.write(raster_layer.metadata().encode("utf8"))
+
+        # self.dlg.lbl_debug.setText(raster_layer.dataProvider().colorInterpretationName(1) + "\n" +
+        #                            raster_layer.dataProvider().colorInterpretationName(2) + "\n" +
+        #                            raster_layer.dataProvider().colorInterpretationName(3) + "\n" +
+        #                            raster_layer.dataProvider().colorInterpretationName(4))
+
+        self.dlg.lbl_debug.setText(str(raster_layer.dataProvider().colorInterpretation(1)) + "\n" +
+                                   str(raster_layer.dataProvider().colorInterpretation(2)) + "\n" +
+                                   str(raster_layer.dataProvider().colorInterpretation(3)) + "\n" +
+                                   str(raster_layer.dataProvider().colorInterpretation(4)))
