@@ -24,8 +24,9 @@ import os.path
 import collections
 
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
-from PyQt4.QtGui import QAction, QIcon, QColor
+from PyQt4.QtGui import QAction, QIcon, QColor, QPixmap, QPainter
 from band_information import BandInformation
+from colors_for_ndvi_map import ColorsForNdviMap
 from ndvi_calculator_dialog import ndvi_calculatorDialog
 from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 from qgis.core import (QgsMapLayerRegistry,
@@ -194,6 +195,23 @@ class ndvi_calculator:
         for name, raster_layer in layers.iteritems():
             self.dlg.cbx_layers.addItem(raster_layer.name())
 
+        self.dlg.cbx_color_schemes.clear()
+        color_schemes = ColorsForNdviMap().colorSchemes
+        for color_scheme_name in color_schemes:
+            color_scheme = color_schemes[color_scheme_name]
+            icon_pixmap = QPixmap(50, 20)
+            painter = QPainter(icon_pixmap)
+
+            painter.fillRect(0, 0, 10, 20, color_scheme["ndvi_0"])
+            painter.fillRect(10, 0, 20, 20, color_scheme["ndvi_0.25"])
+            painter.fillRect(20, 0, 30, 20, color_scheme["ndvi_0.5"])
+            painter.fillRect(30, 0, 40, 20, color_scheme["ndvi_0.75"])
+            painter.fillRect(40, 0, 50, 20, color_scheme["ndvi_1"])
+            painter.end()
+
+            icon = QIcon(icon_pixmap)
+            self.dlg.cbx_color_schemes.addItem(icon, color_scheme_name)
+
         self.dlg.btn_debug.clicked.connect(self.debug_f)
 
         # show the dialog
@@ -262,16 +280,17 @@ class ndvi_calculator:
         ndvi075_raster_layer.setContrastEnhancement(algorithm, limits)
         ndvi1_raster_layer.setContrastEnhancement(algorithm, limits)
 
+        colors_scheme = ColorsForNdviMap().getColorScheme(self.dlg.cbx_color_schemes.currentText())
         ndvi0_raster_layer.setRenderer(
-            self.getRenderer(ndvi0_raster_layer.dataProvider(), self.getColorMapForNdvi0()))
+            self.getRenderer(ndvi0_raster_layer.dataProvider(), self.getColorMapForNdvi0(colors_scheme)))
         ndvi025_raster_layer.setRenderer(
-            self.getRenderer(ndvi025_raster_layer.dataProvider(), self.getColorMapForNdvi025()))
+            self.getRenderer(ndvi025_raster_layer.dataProvider(), self.getColorMapForNdvi025(colors_scheme)))
         ndvi05_raster_layer.setRenderer(
-            self.getRenderer(ndvi05_raster_layer.dataProvider(), self.getColorMapForNdvi05()))
+            self.getRenderer(ndvi05_raster_layer.dataProvider(), self.getColorMapForNdvi05(colors_scheme)))
         ndvi075_raster_layer.setRenderer(
-            self.getRenderer(ndvi075_raster_layer.dataProvider(), self.getColorMapForNdvi075()))
+            self.getRenderer(ndvi075_raster_layer.dataProvider(), self.getColorMapForNdvi075(colors_scheme)))
         ndvi1_raster_layer.setRenderer(
-            self.getRenderer(ndvi1_raster_layer.dataProvider(), self.getColorMapForNdvi1()))
+            self.getRenderer(ndvi1_raster_layer.dataProvider(), self.getColorMapForNdvi1(colors_scheme)))
 
         return [ndvi0_raster_layer, ndvi025_raster_layer, ndvi05_raster_layer, ndvi075_raster_layer, ndvi1_raster_layer]
 
@@ -284,42 +303,42 @@ class ndvi_calculator:
         raster_shader.setRasterShaderFunction(color_ramp_shader)
         return QgsSingleBandPseudoColorRenderer(layer_data_provider, 1, raster_shader)
 
-    def getColorMapForNdvi0(self):
+    def getColorMapForNdvi0(self, colors_scheme):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
-        color_list.append(qri(0, QColor(4, 18, 60, 255), "<0"))
+        color_list.append(qri(0, colors_scheme["ndvi_0"], "<0"))
         color_list.append(qri(1, QColor(0, 0, 0, 0), ">0"))
         return color_list
 
-    def getColorMapForNdvi025(self):
+    def getColorMapForNdvi025(self, colors_scheme):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(0, QColor(0, 0, 0, 0), "<0"))
-        color_list.append(qri(0.25, QColor(148, 114, 60, 255), "0-0.25"))
+        color_list.append(qri(0.25, colors_scheme["ndvi_0.25"], "0-0.25"))
         color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.25"))
         return color_list
 
-    def getColorMapForNdvi05(self):
+    def getColorMapForNdvi05(self, colors_scheme):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(0.25, QColor(0, 0, 0, 0), "<0.25"))
-        color_list.append(qri(0.5, QColor(148, 182, 20, 255), "0.25-0.5"))
+        color_list.append(qri(0.5, colors_scheme["ndvi_0.5"], "0.25-0.5"))
         color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.5"))
         return color_list
 
-    def getColorMapForNdvi075(self):
+    def getColorMapForNdvi075(self, colors_scheme):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(0.5, QColor(0, 0, 0, 0), "<0.5"))
-        color_list.append(qri(0.75, QColor(60, 134, 4, 255), "0.5-0.75"))
+        color_list.append(qri(0.75, colors_scheme["ndvi_0.75"], "0.5-0.75"))
         color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.75"))
         return color_list
 
-    def getColorMapForNdvi1(self):
+    def getColorMapForNdvi1(self, colors_scheme):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(0.75, QColor(0, 0, 0, 0), "<0.75"))
-        color_list.append(qri(1, QColor(4, 38, 4, 255), ">0.75"))
+        color_list.append(qri(1, colors_scheme["ndvi_1"], ">0.75"))
         return color_list
 
     def showBandsNames(self):
