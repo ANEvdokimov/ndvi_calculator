@@ -20,14 +20,11 @@
  *                                                                         *
  ***************************************************************************/
 """
-import os.path
 import collections
+import os.path
 
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon, QColor, QPixmap, QPainter
-from band_information import BandInformation
-from colors_for_ndvi_map import ColorsForNdviMap
-from ndvi_calculator_dialog import ndvi_calculatorDialog
 from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 from qgis.core import (QgsMapLayerRegistry,
                        QgsRasterLayer,
@@ -36,6 +33,10 @@ from qgis.core import (QgsMapLayerRegistry,
                        QgsRasterShader,
                        QgsColorRampShader,
                        QgsSingleBandPseudoColorRenderer)
+
+from band_information import BandInformation
+from colors_for_ndvi_map import ColorsForNdviMap
+from ndvi_calculator_dialog import ndvi_calculatorDialog
 
 
 class ndvi_calculator:
@@ -192,8 +193,9 @@ class ndvi_calculator:
         self.dlg.cbx_layers.clear()
         self.dlg.cbx_layers.currentIndexChanged.connect(self.showBandsNames)
 
-        for name, raster_layer in layers.iteritems():
-            self.dlg.cbx_layers.addItem(raster_layer.name())
+        for name, layer in layers.iteritems():
+            if layer.type() == 1:  # 1 = raster layer
+                self.dlg.cbx_layers.addItem(layer.name())
 
         self.dlg.cbx_color_schemes.clear()
         color_schemes = ColorsForNdviMap().colorSchemes
@@ -231,8 +233,8 @@ class ndvi_calculator:
             infrared_band = bands[self.dlg.cbx_infrared.currentText()]
 
             ndvi_layers_list = self.calculateNdvi(raster_layer, red_band.serial_number, infrared_band.serial_number)
-            for layer in ndvi_layers_list:
-                map_layer_registry.addMapLayer(layer)
+            for ndvi_layer in ndvi_layers_list:
+                map_layer_registry.addMapLayer(ndvi_layer)
 
     def calculateNdvi(self, raster_layer, red_band_number, infrared_band_number):
         r = QgsRasterCalculatorEntry()
@@ -383,15 +385,7 @@ class ndvi_calculator:
         map_layer_registry = QgsMapLayerRegistry.instance()
         raster_layer = map_layer_registry.mapLayersByName(str(self.dlg.cbx_layers.currentText()))[0]
 
-        # with open("c:/Users/evdok/Desktop/metadata-landsat7.txt", "w") as met:
-        #     met.write(raster_layer.metadata().encode("utf8"))
-
-        # self.dlg.lbl_debug.setText(raster_layer.dataProvider().colorInterpretationName(1) + "\n" +
-        #                            raster_layer.dataProvider().colorInterpretationName(2) + "\n" +
-        #                            raster_layer.dataProvider().colorInterpretationName(3) + "\n" +
-        #                            raster_layer.dataProvider().colorInterpretationName(4))
-
-        self.dlg.lbl_debug.setText(str(raster_layer.dataProvider().colorInterpretation(1)) + "\n" +
-                                   str(raster_layer.dataProvider().colorInterpretation(2)) + "\n" +
-                                   str(raster_layer.dataProvider().colorInterpretation(3)) + "\n" +
-                                   str(raster_layer.dataProvider().colorInterpretation(4)))
+        if raster_layer.type() == 1:
+            self.dlg.lbl_debug.setText(str(raster_layer.type()))
+        else:
+            self.dlg.lbl_debug.setText("no")
