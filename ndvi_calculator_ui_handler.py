@@ -208,7 +208,12 @@ class ndvi_calculator_ui_handler:
                 self.dlg.show_file_name_error()
                 return
 
-            layer_for_calculation = self.getCurrentLayerFromDialogWindow()
+            try:
+                layer_for_calculation = self.getCurrentLayerFromDialogWindow()
+            except IndexError:
+                self.dlg.show_layer_name_error()
+                return
+
             bands = self.getBandsFromLayer(layer_for_calculation)
             red_band = bands[self.dlg.cbx_red_color.currentText()]
             infrared_band = bands[self.dlg.cbx_infrared.currentText()]

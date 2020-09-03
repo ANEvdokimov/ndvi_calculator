@@ -53,3 +53,11 @@ class ndvi_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         message_box.setWindowTitle("Error")
         message_box.setStandardButtons(QtGui.QMessageBox.Ok)
         message_box.exec_()
+
+    @staticmethod
+    def show_layer_name_error():
+        message_box = QtGui.QMessageBox()
+        message_box.setText("incorrect layer name")
+        message_box.setWindowTitle("Error")
+        message_box.setStandardButtons(QtGui.QMessageBox.Ok)
+        message_box.exec_()
