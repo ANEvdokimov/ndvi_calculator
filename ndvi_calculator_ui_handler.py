@@ -23,7 +23,7 @@
 import collections
 import os.path
 
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QThread, QObject
 from PyQt4.QtGui import QAction, QIcon, QColor, QPixmap, QPainter
 from qgis.core import (QgsMapLayerRegistry,
                        QgsRasterLayer,
@@ -37,10 +37,9 @@ from band_information import BandInformation
 from colors_for_ndvi_map import ColorsForNdviMap
 from ndvi_calculator import NdviCalculator
 from ndvi_calculator_dialog import ndvi_calculatorDialog
-import copy
 
 
-class ndvi_calculator_ui_handler:
+class ndvi_calculator_ui_handler(QObject):
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -51,6 +50,10 @@ class ndvi_calculator_ui_handler:
             application at run time.
         :type iface: QgisInterface
         """
+        super(ndvi_calculator_ui_handler, self).__init__()
+        self.calculation_thread = QThread(self)
+        self.calculation_worker = None
+
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
@@ -71,13 +74,13 @@ class ndvi_calculator_ui_handler:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&NDVI Calculator')
+        self.menu = self.getTranslation(u'&NDVI Calculator')
         # We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'ndvi_calculator')
         self.toolbar.setObjectName(u'ndvi_calculator')
 
     # noinspection PyMethodMayBeStatic
-    def tr(self, message):
+    def getTranslation(self, message):
         """Get the translation for a string using Qt translation API.
 
         We implement this ourselves since we do not inherit QObject.
@@ -173,7 +176,7 @@ class ndvi_calculator_ui_handler:
         icon_path = ':/plugins/ndvi_calculator/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Calculate NDVI'),
+            text=self.getTranslation(u'Calculate NDVI'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -181,7 +184,7 @@ class ndvi_calculator_ui_handler:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginRasterMenu(
-                self.tr(u'&NDVI Calculator'),
+                self.getTranslation(u'&NDVI Calculator'),
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
@@ -189,8 +192,7 @@ class ndvi_calculator_ui_handler:
 
     def run(self):
         """Run method that performs all the real work"""
-        map_layer_registry = QgsMapLayerRegistry.instance()
-        layers = map_layer_registry.mapLayers()
+        layers = QgsMapLayerRegistry.instance().mapLayers()
 
         self.showLayersList(layers)
         self.showColorSchemes()
@@ -218,10 +220,7 @@ class ndvi_calculator_ui_handler:
             red_band = bands[self.dlg.cbx_red_color.currentText()]
             infrared_band = bands[self.dlg.cbx_infrared.currentText()]
 
-            ndvi_layers_list = self.calculateNdvi(layer_for_calculation, red_band.serial_number,
-                                                  infrared_band.serial_number)
-            for ndvi_layer in ndvi_layers_list:
-                map_layer_registry.addMapLayer(ndvi_layer)
+            self.calculateNdvi(layer_for_calculation, red_band.serial_number, infrared_band.serial_number)
 
     def showLayersList(self, layers):
         self.dlg.cbx_layers.clear()
@@ -250,14 +249,25 @@ class ndvi_calculator_ui_handler:
             self.dlg.cbx_color_schemes.addItem(icon, color_scheme_name)
 
     def calculateNdvi(self, raster_layer, red_band_number, infrared_band_number):
+        self.dlg.lbl_debug.setText(str(self.calculation_thread.isRunning()))
+
+        if self.calculation_thread.isRunning() is True:
+            return
+
         output_file_name = self.dlg.led_output_file.text()
 
-        NdviCalculator.calculateNdvi(
-            raster_layer,
-            red_band_number,
-            infrared_band_number,
-            output_file_name
-        )
+        self.calculation_worker = NdviCalculator(raster_layer, red_band_number, infrared_band_number, output_file_name)
+        self.calculation_worker.moveToThread(self.calculation_thread)
+        self.calculation_thread.started.connect(self.calculation_worker.run)
+        self.calculation_worker.finished.connect(self.finishCalculationThread)
+        self.calculation_thread.start()
+
+    def finishCalculationThread(self):
+        self.calculation_thread.quit()
+        self.outputNdviLayers()
+
+    def outputNdviLayers(self):
+        output_file_name = self.dlg.led_output_file.text()
 
         ndvi0_raster_layer = QgsRasterLayer(output_file_name, "NDVI - <0")
         ndvi025_raster_layer = QgsRasterLayer(output_file_name, "NDVI - 0-0.25")
@@ -285,7 +295,12 @@ class ndvi_calculator_ui_handler:
         ndvi1_raster_layer.setRenderer(
             self.getRenderer(ndvi1_raster_layer.dataProvider(), self.getColorMapForNdvi1(colors_scheme)))
 
-        return [ndvi0_raster_layer, ndvi025_raster_layer, ndvi05_raster_layer, ndvi075_raster_layer, ndvi1_raster_layer]
+        map_layer_registry = QgsMapLayerRegistry.instance()
+        map_layer_registry.addMapLayer(ndvi0_raster_layer)
+        map_layer_registry.addMapLayer(ndvi025_raster_layer)
+        map_layer_registry.addMapLayer(ndvi05_raster_layer)
+        map_layer_registry.addMapLayer(ndvi075_raster_layer)
+        map_layer_registry.addMapLayer(ndvi1_raster_layer)
 
     def getRenderer(self, layer_data_provider, color_map):
         raster_shader = QgsRasterShader()
@@ -376,4 +391,18 @@ class ndvi_calculator_ui_handler:
         return QgsMapLayerRegistry.instance().mapLayersByName(self.dlg.cbx_layers.currentText())[0]
 
     def debug_f(self):
-        pass
+        if not self.dlg.led_output_file.text():
+            self.dlg.show_file_name_error()
+            return
+
+        try:
+            layer_for_calculation = self.getCurrentLayerFromDialogWindow()
+        except IndexError:
+            self.dlg.show_layer_name_error()
+            return
+
+        bands = self.getBandsFromLayer(layer_for_calculation)
+        red_band = bands[self.dlg.cbx_red_color.currentText()]
+        infrared_band = bands[self.dlg.cbx_infrared.currentText()]
+
+        self.calculateNdvi(layer_for_calculation, red_band.serial_number, infrared_band.serial_number)
