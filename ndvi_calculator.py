@@ -3,7 +3,6 @@ from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 
 
 class NdviCalculator(QtCore.QObject):
-    running = False
     finished = QtCore.pyqtSignal()
 
     def __init__(self, raster_layer, red_band_number, infrared_band_number, output_file_name):

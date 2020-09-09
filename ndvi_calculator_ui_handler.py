@@ -192,6 +192,8 @@ class ndvi_calculator_ui_handler(QObject):
 
     def run(self):
         """Run method that performs all the real work"""
+        self.dlg.accepted.connect(self.start_calculation)
+
         layers = QgsMapLayerRegistry.instance().mapLayers()
 
         self.showLayersList(layers)
@@ -204,23 +206,22 @@ class ndvi_calculator_ui_handler(QObject):
         # Run the dialog event loop
         result = self.dlg.exec_()
 
-        # See if OK was pressed
-        if result:
-            if not self.dlg.led_output_file.text():
-                self.dlg.show_file_name_error()
-                return
+    def start_calculation(self):
+        if not self.dlg.led_output_file.text():
+            self.dlg.show_file_name_error()
+            return
 
-            try:
-                layer_for_calculation = self.getCurrentLayerFromDialogWindow()
-            except IndexError:
-                self.dlg.show_layer_name_error()
-                return
+        try:
+            layer_for_calculation = self.getCurrentLayerFromDialogWindow()
+        except IndexError:
+            self.dlg.show_layer_name_error()
+            return
 
-            bands = self.getBandsFromLayer(layer_for_calculation)
-            red_band = bands[self.dlg.cbx_red_color.currentText()]
-            infrared_band = bands[self.dlg.cbx_infrared.currentText()]
+        bands = self.getBandsFromLayer(layer_for_calculation)
+        red_band = bands[self.dlg.cbx_red_color.currentText()]
+        infrared_band = bands[self.dlg.cbx_infrared.currentText()]
 
-            self.calculateNdvi(layer_for_calculation, red_band.serial_number, infrared_band.serial_number)
+        self.calculateNdvi(layer_for_calculation, red_band.serial_number, infrared_band.serial_number)
 
     def showLayersList(self, layers):
         self.dlg.cbx_layers.clear()
@@ -249,10 +250,10 @@ class ndvi_calculator_ui_handler(QObject):
             self.dlg.cbx_color_schemes.addItem(icon, color_scheme_name)
 
     def calculateNdvi(self, raster_layer, red_band_number, infrared_band_number):
-        self.dlg.lbl_debug.setText(str(self.calculation_thread.isRunning()))
-
         if self.calculation_thread.isRunning() is True:
             return
+
+        self.dlg.enable_load_mode()
 
         output_file_name = self.dlg.led_output_file.text()
 
@@ -264,6 +265,7 @@ class ndvi_calculator_ui_handler(QObject):
 
     def finishCalculationThread(self):
         self.calculation_thread.quit()
+        self.dlg.disable_load_mode()
         self.outputNdviLayers()
 
     def outputNdviLayers(self):
@@ -391,18 +393,4 @@ class ndvi_calculator_ui_handler(QObject):
         return QgsMapLayerRegistry.instance().mapLayersByName(self.dlg.cbx_layers.currentText())[0]
 
     def debug_f(self):
-        if not self.dlg.led_output_file.text():
-            self.dlg.show_file_name_error()
-            return
-
-        try:
-            layer_for_calculation = self.getCurrentLayerFromDialogWindow()
-        except IndexError:
-            self.dlg.show_layer_name_error()
-            return
-
-        bands = self.getBandsFromLayer(layer_for_calculation)
-        red_band = bands[self.dlg.cbx_red_color.currentText()]
-        infrared_band = bands[self.dlg.cbx_infrared.currentText()]
-
-        self.calculateNdvi(layer_for_calculation, red_band.serial_number, infrared_band.serial_number)
+        pass
