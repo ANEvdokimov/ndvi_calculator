@@ -47,17 +47,10 @@ class ndvi_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif")[0]
         self.led_output_file.setText(file_name)
 
-    def show_file_name_error(self):
+    def show_error_message(self, error_title, error_message):
         message_box = QtGui.QMessageBox()
-        message_box.setText("empty file name")
-        message_box.setWindowTitle("Error")
-        message_box.setStandardButtons(QtGui.QMessageBox.Ok)
-        message_box.exec_()
-
-    def show_layer_name_error(self):
-        message_box = QtGui.QMessageBox()
-        message_box.setText("incorrect layer name")
-        message_box.setWindowTitle("Error")
+        message_box.setText(error_message)
+        message_box.setWindowTitle(error_title)
         message_box.setStandardButtons(QtGui.QMessageBox.Ok)
         message_box.exec_()
 
