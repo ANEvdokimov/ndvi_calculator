@@ -199,7 +199,7 @@ class ndvi_calculator_ui_handler(QObject):
 
         layers = QgsMapLayerRegistry.instance().mapLayers()
 
-        self.showLayersList(layers)
+        self.showLayersListForNdvi(layers)
         self.showColorSchemes()
 
         self.dlg.btn_debug.clicked.connect(self.debug_f)
@@ -209,13 +209,68 @@ class ndvi_calculator_ui_handler(QObject):
         # Run the dialog event loop
         result = self.dlg.exec_()
 
-    def showLayersList(self, layers):
-        self.dlg.cbx_layers.clear()
-        self.dlg.cbx_layers.currentIndexChanged.connect(self.showBandsNames)
+    def showLayersListForNdvi(self, layers):
+        self.dlg.cbx_ndvi_redLayer.clear()
+        self.dlg.cbx_ndvi_infraredLayer.clear()
+
+        self.dlg.cbx_ndvi_redLayer.currentIndexChanged.connect(self.cbx_ndvi_redLayer_handler)
+        self.dlg.cbx_ndvi_infraredLayer.currentIndexChanged.connect(self.ccbx_ndvi_infraredLayer_handler)
 
         for name, layer in layers.iteritems():
             if layer.type() == 1:  # 1 = raster layer
-                self.dlg.cbx_layers.addItem(layer.name())
+                self.dlg.cbx_ndvi_redLayer.addItem(layer.name())
+                self.dlg.cbx_ndvi_infraredLayer.addItem(layer.name())
+
+    def cbx_ndvi_redLayer_handler(self, index):
+        layer_name = self.dlg.cbx_ndvi_redLayer.itemText(index)
+        try:
+            current_layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
+        except IndexError:
+            return
+
+        bands_dictionary = self.getBandsFromLayer(current_layer)
+        sorted(bands_dictionary)
+
+        self.dlg.lstw_ndvi_redBands.clear()
+
+        index = 0
+        for band_information in bands_dictionary.values():
+            self.dlg.lstw_ndvi_redBands.addItem(band_information.full_name)
+            if band_information.color_interpretation == 3:
+                self.dlg.lstw_ndvi_redBands.setCurrentRow(index)
+            index += 1
+
+    def ccbx_ndvi_infraredLayer_handler(self, index):
+        layer_name = self.dlg.cbx_ndvi_infraredLayer.itemText(index)
+
+        try:
+            current_layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
+        except IndexError:
+            return
+
+        bands_dictionary = self.getBandsFromLayer(current_layer)
+        sorted(bands_dictionary)
+
+        self.dlg.lstw_ndvi_infraredBands.clear()
+
+        index = 0
+        for band_information in bands_dictionary.values():
+            self.dlg.lstw_ndvi_infraredBands.addItem(band_information.full_name)
+            if band_information.color_interpretation == 0:
+                self.dlg.lstw_ndvi_infraredBands.setCurrentRow(index)
+            index += 1
+
+    def getBandsFromLayer(self, raster_layer):
+        layer_data_provider = raster_layer.dataProvider()
+
+        bands = {}
+        for band_number in range(1, raster_layer.bandCount() + 1):
+            band = BandInformation(layer_data_provider.colorInterpretationName(band_number),
+                                   band_number,
+                                   layer_data_provider.colorInterpretation(band_number))
+            bands[band.full_name] = band
+
+        return collections.OrderedDict(sorted(bands.items()))
 
     def showColorSchemes(self):
         self.dlg.cbx_color_schemes.clear()
@@ -235,72 +290,51 @@ class ndvi_calculator_ui_handler(QObject):
             icon = QIcon(icon_pixmap)
             self.dlg.cbx_color_schemes.addItem(icon, color_scheme_name)
 
-    def showBandsNames(self):
-        try:
-            bands_dictionary = self.getBandsFromCurrentLayer()
-        except IndexError:
-            return
-
-        sorted(bands_dictionary)
-
-        self.dlg.cbx_red_color.clear()
-        self.dlg.cbx_infrared.clear()
-
-        index = 0
-        for band_information in bands_dictionary.values():
-            self.dlg.cbx_red_color.addItem(band_information.full_name)
-            if band_information.color_interpretation == 3:
-                self.dlg.cbx_red_color.setCurrentIndex(index)
-
-            self.dlg.cbx_infrared.addItem(band_information.full_name)
-            if band_information.color_interpretation == 0:
-                self.dlg.cbx_infrared.setCurrentIndex(index)
-
-            index += 1
-
-    def getBandsFromCurrentLayer(self):
-        return self.getBandsFromLayer(self.getCurrentLayerFromDialogWindow())
-
-    def getBandsFromLayer(self, raster_layer):
-        layer_data_provider = raster_layer.dataProvider()
-
-        bands = {}
-        for band_number in range(1, raster_layer.bandCount() + 1):
-            band = BandInformation(layer_data_provider.colorInterpretationName(band_number),
-                                   band_number,
-                                   layer_data_provider.colorInterpretation(band_number))
-            bands[band.full_name] = band
-
-        return collections.OrderedDict(sorted(bands.items()))
-
-    def getCurrentLayerFromDialogWindow(self):
-        return QgsMapLayerRegistry.instance().mapLayersByName(self.dlg.cbx_layers.currentText())[0]
-
     def start_calculation(self):
         if self.calculation_thread.isRunning() is True:
             return
 
-        output_file_name = self.dlg.led_output_file.text()
+        output_file_name = self.dlg.led_ndvi_outputFile.text()
 
         try:
             self.validateFilePath(output_file_name)
-            layer_for_calculation = self.getCurrentLayerFromDialogWindow()
+            red_layer_for_calculation = self.getCurrentLayerWithRedBand()
+            infrared_layer_for_calculation = self.getCurrentLayerWithInfraredBand()
+
+            bands = self.getBandsFromLayer(red_layer_for_calculation)
+            red_band = bands[self.getCurrentBandName(self.dlg.lstw_ndvi_redBands)]
+
+            bands = self.getBandsFromLayer(infrared_layer_for_calculation)
+            infrared_band = bands[self.getCurrentBandName(self.dlg.lstw_ndvi_infraredBands)]
         except CalculatorException as exp:
             self.dlg.show_error_message(exp.title, exp.message)
             return
 
-        bands = self.getBandsFromLayer(layer_for_calculation)
-        red_band = bands[self.dlg.cbx_red_color.currentText()]
-        infrared_band = bands[self.dlg.cbx_infrared.currentText()]
-
         self.dlg.enable_load_mode()
 
-        self.calculation_worker = NdviCalculator(
-            layer_for_calculation, red_band.serial_number, infrared_band.serial_number, output_file_name)
+        self.calculation_worker = NdviCalculator(red_layer_for_calculation, infrared_layer_for_calculation,
+                                                 red_band.serial_number, infrared_band.serial_number, output_file_name)
         self.calculation_worker.moveToThread(self.calculation_thread)
         self.calculation_thread.started.connect(self.calculation_worker.run)
         self.calculation_worker.finished.connect(self.finishCalculationThread)
         self.calculation_thread.start()
+
+    def getCurrentLayerWithRedBand(self):
+        layer_name = self.dlg.cbx_ndvi_redLayer.currentText()
+        return self.getLayerByName(layer_name)
+
+    def getCurrentLayerWithInfraredBand(self):
+        layer_name = self.dlg.cbx_ndvi_redLayer.currentText()
+        return self.getLayerByName(layer_name)
+
+    def getLayerByName(self, layer_name):
+        try:
+            return QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
+        except IndexError:
+            raise CalculatorException("Layer not found", "Layer with name \"%s\" not found" % layer_name)
+
+    def getCurrentBandName(self, lstw_ndv):
+        return lstw_ndv.currentItem().text()
 
     def validateFilePath(self, file_path):
         if not file_path:
@@ -318,14 +352,12 @@ class ndvi_calculator_ui_handler(QObject):
         if not os.path.isdir(directory_name):
             raise CalculatorException("file error", "incorrect directory name")
 
-    def finishCalculationThread(self):
+    def finishCalculationThread(self, output_file_name):
         self.calculation_thread.quit()
         self.dlg.disable_load_mode()
-        self.outputNdviLayers()
+        self.outputNdviLayers(output_file_name)
 
-    def outputNdviLayers(self):
-        output_file_name = self.dlg.led_output_file.text()
-
+    def outputNdviLayers(self, output_file_name):
         ndvi0_raster_layer = QgsRasterLayer(output_file_name, "NDVI - <0")
         ndvi025_raster_layer = QgsRasterLayer(output_file_name, "NDVI - 0-0.25")
         ndvi05_raster_layer = QgsRasterLayer(output_file_name, "NDVI - 0.25-0.5")
@@ -407,4 +439,6 @@ class ndvi_calculator_ui_handler(QObject):
         return color_list
 
     def debug_f(self):
-        pass
+        self.dlg.lbl_debug.setText(self.getCurrentLayerFromDialogWindow().name().encode("utf8").decode("utf8"))
+        with open("c:/Users/evdok/Desktop/test.txt", "w") as file2:
+            file2.write(self.getCurrentLayerFromDialogWindow().name().encode("utf8"))

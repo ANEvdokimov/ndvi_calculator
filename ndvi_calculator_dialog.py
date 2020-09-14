@@ -23,7 +23,7 @@
 
 import os
 
-from PyQt4 import QtGui, uic
+from PyQt4 import QtCore, QtGui, uic
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ndvi_calculator_dialog_base.ui'))
@@ -40,12 +40,15 @@ class ndvi_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
 
-        self.btn_output_file.clicked.connect(self.handler_btn_output_file)
+        self.btn_ndvi_outputFile.clicked.connect(self.handler_btn_output_file)
+        self.rbtn_calculateNdvi.clicked.connect(self.change_ndvi_calculation_mode)
+        self.rbtn_openNdviFile.clicked.connect(self.change_ndvi_calculation_mode)
+        self.change_ndvi_calculation_mode()
         self.prb_loading.setVisible(False)
 
     def handler_btn_output_file(self):
         file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif")[0]
-        self.led_output_file.setText(file_name)
+        self.led_ndvi_outputFile.setText(file_name)
 
     def show_error_message(self, error_title, error_message):
         message_box = QtGui.QMessageBox()
@@ -55,14 +58,22 @@ class ndvi_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         message_box.exec_()
 
     def enable_load_mode(self):
-        self.frm_content.setEnabled(False)
+        self.tabw_content.setEnabled(False)
         self.button_box.button(QtGui.QDialogButtonBox.Ok).setEnabled(False)
         self.prb_loading.setVisible(True)
 
     def disable_load_mode(self):
-        self.frm_content.setEnabled(True)
+        self.tabw_content.setEnabled(True)
         self.button_box.button(QtGui.QDialogButtonBox.Ok).setEnabled(True)
         self.prb_loading.setVisible(False)
+
+    def change_ndvi_calculation_mode(self):
+        if self.rbtn_calculateNdvi.isChecked():
+            self.frm_calculateNdvi.setEnabled(True)
+            self.frm_openNdviFile.setEnabled(False)
+        elif self.rbtn_openNdviFile.isChecked():
+            self.frm_calculateNdvi.setEnabled(False)
+            self.frm_openNdviFile.setEnabled(True)
 
     def accept(self):
         self.accepted.emit()
