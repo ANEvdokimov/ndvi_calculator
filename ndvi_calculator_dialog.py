@@ -49,11 +49,15 @@ class ndvi_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         self.prb_loading.setVisible(False)
 
     def handler_btn_ndvi_outputFile(self):
-        file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif")[0]
+        users_home_directory = os.path.expanduser("~")
+        file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif",
+                                                                 directory=users_home_directory)[0]
         self.led_ndvi_outputFile.setText(file_name)
 
     def handler_btn_ndvi_inputFile(self):
-        file_name = QtGui.QFileDialog().getOpenFileNameAndFilter(self, "Open file", filter="*.tif")[0]
+        users_home_directory = os.path.expanduser("~")
+        file_name = QtGui.QFileDialog().getOpenFileNameAndFilter(self, "Open file", filter="*.tif",
+                                                                 directory=users_home_directory)[0]
         self.led_ndvi_inputFile.setText(file_name)
 
     def show_error_message(self, error_title, error_message):
