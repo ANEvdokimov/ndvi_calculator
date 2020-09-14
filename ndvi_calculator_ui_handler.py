@@ -195,7 +195,7 @@ class ndvi_calculator_ui_handler(QObject):
 
     def run(self):
         """Run method that performs all the real work"""
-        self.dlg.accepted.connect(self.start_calculation)
+        self.dlg.accepted.connect(self.startCalculation)
 
         layers = QgsMapLayerRegistry.instance().mapLayers()
 
@@ -290,14 +290,26 @@ class ndvi_calculator_ui_handler(QObject):
             icon = QIcon(icon_pixmap)
             self.dlg.cbx_color_schemes.addItem(icon, color_scheme_name)
 
-    def start_calculation(self):
+    def startCalculation(self):
         if self.calculation_thread.isRunning() is True:
             return
 
+        if self.dlg.rbtn_calculateNdvi.isChecked():
+            self.calculateNdvi()
+        elif self.dlg.rbtn_openNdviFile.isChecked():
+            try:
+                input_file_name = self.dlg.led_ndvi_inputFile.text()
+                self.validateInputFilePath(input_file_name)
+            except CalculatorException as exp:
+                self.dlg.show_error_message(exp.title, exp.message)
+                return
+            self.outputNdviLayers(input_file_name)
+
+    def calculateNdvi(self):
         output_file_name = self.dlg.led_ndvi_outputFile.text()
 
         try:
-            self.validateFilePath(output_file_name)
+            self.validateOutputFilePath(output_file_name)
             red_layer_for_calculation = self.getCurrentLayerWithRedBand()
             infrared_layer_for_calculation = self.getCurrentLayerWithInfraredBand()
 
@@ -336,7 +348,11 @@ class ndvi_calculator_ui_handler(QObject):
     def getCurrentBandName(self, lstw_ndv):
         return lstw_ndv.currentItem().text()
 
-    def validateFilePath(self, file_path):
+    def validateInputFilePath(self, file_path):
+        if not os.path.exists(file_path):
+            raise CalculatorException("file error", "file do not exist")
+
+    def validateOutputFilePath(self, file_path):
         if not file_path:
             raise CalculatorException("file error", "file path is None")
 
@@ -357,12 +373,12 @@ class ndvi_calculator_ui_handler(QObject):
         self.dlg.disable_load_mode()
         self.outputNdviLayers(output_file_name)
 
-    def outputNdviLayers(self, output_file_name):
-        ndvi0_raster_layer = QgsRasterLayer(output_file_name, "NDVI - <0")
-        ndvi025_raster_layer = QgsRasterLayer(output_file_name, "NDVI - 0-0.25")
-        ndvi05_raster_layer = QgsRasterLayer(output_file_name, "NDVI - 0.25-0.5")
-        ndvi075_raster_layer = QgsRasterLayer(output_file_name, "NDVI - 0.5-0.75")
-        ndvi1_raster_layer = QgsRasterLayer(output_file_name, "NDVI - 0.75-1")
+    def outputNdviLayers(self, file_name):
+        ndvi0_raster_layer = QgsRasterLayer(file_name, "NDVI - <0")
+        ndvi025_raster_layer = QgsRasterLayer(file_name, "NDVI - 0-0.25")
+        ndvi05_raster_layer = QgsRasterLayer(file_name, "NDVI - 0.25-0.5")
+        ndvi075_raster_layer = QgsRasterLayer(file_name, "NDVI - 0.5-0.75")
+        ndvi1_raster_layer = QgsRasterLayer(file_name, "NDVI - 0.75-1")
 
         algorithm = QgsContrastEnhancement.StretchToMinimumMaximum
         limits = QgsRaster.ContrastEnhancementMinMax

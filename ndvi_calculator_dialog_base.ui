@@ -322,10 +322,10 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="led_ndvi_outputFile_2"/>
+              <widget class="QLineEdit" name="led_ndvi_inputFile"/>
              </item>
              <item>
-              <widget class="QPushButton" name="btn_ndvi_outputFile_2">
+              <widget class="QPushButton" name="btn_ndvi_inputFile">
                <property name="minimumSize">
                 <size>
                  <width>40</width>

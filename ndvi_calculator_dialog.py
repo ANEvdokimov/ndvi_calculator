@@ -23,7 +23,7 @@
 
 import os
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt4 import QtGui, uic
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ndvi_calculator_dialog_base.ui'))
@@ -40,15 +40,21 @@ class ndvi_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
 
-        self.btn_ndvi_outputFile.clicked.connect(self.handler_btn_output_file)
+        self.btn_ndvi_outputFile.clicked.connect(self.handler_btn_ndvi_outputFile)
+        self.btn_ndvi_inputFile.clicked.connect(self.handler_btn_ndvi_inputFile)
+
         self.rbtn_calculateNdvi.clicked.connect(self.change_ndvi_calculation_mode)
         self.rbtn_openNdviFile.clicked.connect(self.change_ndvi_calculation_mode)
         self.change_ndvi_calculation_mode()
         self.prb_loading.setVisible(False)
 
-    def handler_btn_output_file(self):
+    def handler_btn_ndvi_outputFile(self):
         file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif")[0]
         self.led_ndvi_outputFile.setText(file_name)
+
+    def handler_btn_ndvi_inputFile(self):
+        file_name = QtGui.QFileDialog().getOpenFileNameAndFilter(self, "Open file", filter="*.tif")[0]
+        self.led_ndvi_inputFile.setText(file_name)
 
     def show_error_message(self, error_title, error_message):
         message_box = QtGui.QMessageBox()
