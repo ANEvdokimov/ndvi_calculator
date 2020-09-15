@@ -195,6 +195,12 @@ class ndvi_calculator_ui_handler(QObject):
 
     def run(self):
         """Run method that performs all the real work"""
+        try:
+            self.dlg.accepted.disconnect(self.startCalculation)
+        except TypeError:
+            # if the TypeError was thrown, then there was not the connection (at first start)
+            pass
+
         self.dlg.accepted.connect(self.startCalculation)
 
         layers = QgsMapLayerRegistry.instance().mapLayers()
