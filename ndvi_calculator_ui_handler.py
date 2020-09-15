@@ -342,7 +342,7 @@ class ndvi_calculator_ui_handler(QObject):
         return self.getLayerByName(layer_name)
 
     def getCurrentLayerWithInfraredBand(self):
-        layer_name = self.dlg.cbx_ndvi_redLayer.currentText()
+        layer_name = self.dlg.cbx_ndvi_infraredLayer.currentText()
         return self.getLayerByName(layer_name)
 
     def getLayerByName(self, layer_name):
