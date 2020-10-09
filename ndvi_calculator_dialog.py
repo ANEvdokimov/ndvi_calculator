@@ -42,6 +42,7 @@ class ndvi_calculatorDialog(QtGui.QDialog, FORM_CLASS):
 
         self.btn_ndvi_outputFile.clicked.connect(self.handler_btn_ndvi_outputFile)
         self.btn_ndvi_inputFile.clicked.connect(self.handler_btn_ndvi_inputFile)
+        self.btn_agr_outputFile.clicked.connect(self.handler_btn_agr_outputFile)
 
         self.rbtn_calculateNdvi.clicked.connect(self.change_ndvi_calculation_mode)
         self.rbtn_openNdviFile.clicked.connect(self.change_ndvi_calculation_mode)
@@ -53,6 +54,12 @@ class ndvi_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif",
                                                                  directory=users_home_directory)[0]
         self.led_ndvi_outputFile.setText(file_name)
+
+    def handler_btn_agr_outputFile(self):
+        users_home_directory = os.path.expanduser("~")
+        file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif",
+                                                                 directory=users_home_directory)[0]
+        self.led_agr_outputFile.setText(file_name)
 
     def handler_btn_ndvi_inputFile(self):
         users_home_directory = os.path.expanduser("~")

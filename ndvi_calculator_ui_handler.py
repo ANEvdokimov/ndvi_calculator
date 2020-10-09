@@ -35,11 +35,11 @@ from qgis.core import (QgsMapLayerRegistry,
                        QgsColorRampShader,
                        QgsSingleBandPseudoColorRenderer)
 
+from config.colors_for_ndvi_map import ColorsForNdviMap
+from ndvi_calculator_dialog import ndvi_calculatorDialog
 from sevices.band_information import BandInformation
 from sevices.calculator_exception import CalculatorException
-from config.colors_for_ndvi_map import ColorsForNdviMap
 from sevices.ndvi_calculator import NdviCalculator
-from ndvi_calculator_dialog import ndvi_calculatorDialog
 from sevices.raster_layer_handler import RasterLayerHandler
 
 
@@ -314,16 +314,54 @@ class ndvi_calculator_ui_handler(QObject):
         if self.calculation_thread.isRunning() is True:
             return
 
-        if self.dlg.rbtn_calculateNdvi.isChecked():
-            self.calculateNdvi()
-        elif self.dlg.rbtn_openNdviFile.isChecked():
-            try:
-                input_file_name = self.dlg.led_ndvi_inputFile.text()
-                self.validateInputFilePath(input_file_name)
-            except CalculatorException as exp:
-                self.dlg.show_error_message(exp.title, exp.message)
-                return
-            self.outputNdviLayers(input_file_name)
+        if self.dlg.tabw_content.currentIndex() == 0:  # NDVI
+            if self.dlg.rbtn_calculateNdvi.isChecked():
+                self.calculateNdvi()
+            elif self.dlg.rbtn_openNdviFile.isChecked():
+                try:
+                    input_file_name = self.dlg.led_ndvi_inputFile.text()
+                    self.validateInputFilePath(input_file_name)
+                except CalculatorException as exp:
+                    self.dlg.show_error_message(exp.title, exp.message)
+                    return
+                self.outputNdviLayers(input_file_name)
+        elif self.dlg.tabw_content.currentIndex() == 1:  # Agriculture and HV
+            self.calculateAgricultureOrHv()
+
+    def calculateAgricultureOrHv(self):
+        output_file_name = self.dlg.led_agr_outputFile.text()
+
+        try:
+            self.validateOutputFilePath(output_file_name)
+            swir_layer = self.getLayerByName(self.dlg.cbx_agr_swirLayer.currentText())
+            nnir_layer = self.getLayerByName(self.dlg.cbx_agr_nnirLayer.currentText())
+            blue_layer = self.getLayerByName(self.dlg.cbx_agr_blueLayer.currentText())
+
+            swir_band = self.getBandsFromLayer(swir_layer)[self.getCurrentBandName(self.dlg.lstw_agr_swirBands)]
+            nnir_band = self.getBandsFromLayer(nnir_layer)[self.getCurrentBandName(self.dlg.lstw_agr_nnirBands)]
+            blue_band = self.getBandsFromLayer(blue_layer)[self.getCurrentBandName(self.dlg.lstw_agr_blueBands)]
+        except CalculatorException as exp:
+            self.dlg.show_error_message(exp.title, exp.message)
+            return
+
+        if self.dlg.rbtn_agr_agriculture.isChecked():
+            layer_list = [(swir_layer, swir_band.serial_number),
+                          (nnir_layer, nnir_band.serial_number),
+                          (blue_layer, blue_band.serial_number)]
+        elif self.dlg.rbtn_agr_hv.isChecked():
+            layer_list = [(nnir_layer, nnir_band.serial_number),
+                          (swir_layer, swir_band.serial_number),
+                          (blue_layer, blue_band.serial_number)]
+        else:
+            return
+
+        self.dlg.enable_load_mode()
+
+        self.calculation_worker = RasterLayerHandler(output_file_name, layer_list)
+        self.calculation_worker.moveToThread(self.calculation_thread)
+        self.calculation_thread.started.connect(self.calculation_worker.merge_bands)
+        self.calculation_worker.finished.connect(self.finishCalcunationAgricultureOrHv)
+        self.calculation_thread.start()
 
     def calculateNdvi(self):
         output_file_name = self.dlg.led_ndvi_outputFile.text()
@@ -348,7 +386,7 @@ class ndvi_calculator_ui_handler(QObject):
                                                  red_band.serial_number, infrared_band.serial_number, output_file_name)
         self.calculation_worker.moveToThread(self.calculation_thread)
         self.calculation_thread.started.connect(self.calculation_worker.run)
-        self.calculation_worker.finished.connect(self.finishCalculationThread)
+        self.calculation_worker.finished.connect(self.finishCalculationNdvi)
         self.calculation_thread.start()
 
     def getCurrentLayerWithRedBand(self):
@@ -388,7 +426,7 @@ class ndvi_calculator_ui_handler(QObject):
         if not os.path.isdir(directory_name):
             raise CalculatorException("file error", "incorrect directory name")
 
-    def finishCalculationThread(self, output_file_name):
+    def finishCalculationNdvi(self, output_file_name):
         self.calculation_thread.quit()
         self.dlg.disable_load_mode()
         self.outputNdviLayers(output_file_name)
@@ -473,6 +511,27 @@ class ndvi_calculator_ui_handler(QObject):
         color_list.append(qri(0.75, QColor(0, 0, 0, 0), "<0.75"))
         color_list.append(qri(1, colors_scheme["ndvi_1"], ">0.75"))
         return color_list
+
+    def finishCalcunationAgricultureOrHv(self, output_file_name):
+        self.calculation_thread.quit()
+        self.dlg.disable_load_mode()
+
+        if output_file_name is None:
+            self.dlg.show_error_message("Create file error", "Failed to create file")
+        else:
+            self.openAgrigultureOrHvFile(output_file_name)
+
+    def openAgrigultureOrHvFile(self, output_file_name):
+        if self.dlg.rbtn_agr_agriculture.isChecked():
+            layer_name = "Agriculture"
+        elif self.dlg.rbtn_agr_hv.isChecked():
+            layer_name = "Healthy_Vegetation"
+        else:
+            return
+
+        raster_layer = QgsRasterLayer(output_file_name, layer_name)
+        map_layer_registry = QgsMapLayerRegistry.instance()
+        map_layer_registry.addMapLayer(raster_layer)
 
     def debug_f(self):
         pass

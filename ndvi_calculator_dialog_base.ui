@@ -445,7 +445,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
-          <widget class="QRadioButton" name="radioButton_2">
+          <widget class="QRadioButton" name="rbtn_agr_agriculture">
            <property name="text">
             <string>Agriculture</string>
            </property>
@@ -455,7 +455,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QRadioButton" name="radioButton">
+          <widget class="QRadioButton" name="rbtn_agr_hv">
            <property name="text">
             <string>Healthy Vegetation</string>
            </property>

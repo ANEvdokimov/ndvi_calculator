@@ -3,16 +3,29 @@
 import os
 
 import numpy as np
+from PyQt4 import QtCore
 from osgeo import gdal
 from osgeo import osr
 
 from calculator_exception import CalculatorException
 
 
-class RasterLayerHandler:
-    # config
-    GDAL_DATA_TYPE = gdal.GDT_UInt16
-    GEOTIFF_DRIVER_NAME = r'GTiff'
+class RasterLayerHandler(QtCore.QObject):
+    finished = QtCore.pyqtSignal(str)
+
+    def __init__(self, output_path, layer_list, gdal_data_type=gdal.GDT_UInt16, gdal_driver_name=r'GTiff'):
+        """
+        :param output_path:
+        :param layer_list:  list of (QgsRasterLayer, band_number), band_number: the number of the band to be extracted
+         to combine with others into one file.
+        :param gdal_data_type:
+        :param gdal_driver_name:
+        """
+        QtCore.QObject.__init__(self)
+        self.output_path = output_path
+        self.layer_list = layer_list
+        self.gdal_data_type = gdal_data_type
+        self.gdal_driver_name = gdal_driver_name
 
     def _layer_to_array(self, layer, band_number):
         dataset = gdal.Open(str(layer.source()))
@@ -41,26 +54,18 @@ class RasterLayerHandler:
 
         return equalized_band_list
 
-    def merge_bands(self, output_path, layer_list, gdal_data_type=GDAL_DATA_TYPE, gdal_driver_name=GEOTIFF_DRIVER_NAME):
-        """
-        :param output_path:
-        :param layer_list: list of (QgsRasterLayer, band_number), band_number: the number of the band to be extracted to
-         combine with others into one file.
-        :param gdal_data_type:
-        :param gdal_driver_name:
-        :return:
-        """
+    def merge_bands(self):
         osr.UseExceptions()
 
         band_list = []
-        wkt = layer_list[0][0].crs().toWkt()
-        cell_resolution_x = layer_list[0][0].rasterUnitsPerPixelX()
-        cell_resolution_y = layer_list[0][0].rasterUnitsPerPixelY()
-        x_min = layer_list[0][0].dataProvider().extent().xMinimum()
-        x_max = layer_list[0][0].dataProvider().extent().xMaximum()
-        y_min = layer_list[0][0].dataProvider().extent().yMinimum()
-        y_max = layer_list[0][0].dataProvider().extent().yMaximum()
-        for layer in layer_list:
+        wkt = self.layer_list[0][0].crs().toWkt()
+        cell_resolution_x = self.layer_list[0][0].rasterUnitsPerPixelX()
+        cell_resolution_y = self.layer_list[0][0].rasterUnitsPerPixelY()
+        x_min = self.layer_list[0][0].dataProvider().extent().xMinimum()
+        x_max = self.layer_list[0][0].dataProvider().extent().xMaximum()
+        y_min = self.layer_list[0][0].dataProvider().extent().yMinimum()
+        y_max = self.layer_list[0][0].dataProvider().extent().yMaximum()
+        for layer in self.layer_list:
             if wkt == layer[0].crs().toWkt() and \
                     x_min == layer[0].dataProvider().extent().xMinimum() and \
                     x_max == layer[0].dataProvider().extent().xMaximum() and \
@@ -78,12 +83,12 @@ class RasterLayerHandler:
         band_list = self._equalize_arrays(band_list)
         height, width = band_list[0].shape
 
-        driver = gdal.GetDriverByName(gdal_driver_name)
-        output_raster = driver.Create(output_path,
+        driver = gdal.GetDriverByName(self.gdal_driver_name)
+        output_raster = driver.Create(self.output_path,
                                       width,
                                       height,
                                       len(band_list),
-                                      eType=gdal_data_type)
+                                      eType=self.gdal_data_type)
 
         geo_transform = (x_min, cell_resolution_x, 0, y_max, 0, -1 * cell_resolution_y)
 
@@ -95,5 +100,7 @@ class RasterLayerHandler:
             output_band.WriteArray(band_list[index])
             output_band.FlushCache()
 
-        if not os.path.exists(output_path):
-            raise CalculatorException('Create file error', 'Failed to create file: %s' % output_path)
+        if not os.path.exists(self.output_path):
+            self.finished.emit(None)
+
+        self.finished.emit(self.output_path)
