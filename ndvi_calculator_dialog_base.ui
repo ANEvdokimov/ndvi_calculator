@@ -13,7 +13,7 @@
   <property name="minimumSize">
    <size>
     <width>350</width>
-    <height>290</height>
+    <height>0</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -34,6 +34,12 @@
    </property>
    <item>
     <widget class="QTabWidget" name="tabw_content">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
      <property name="currentIndex">
       <number>0</number>
      </property>
@@ -54,6 +60,12 @@
        </item>
        <item>
         <widget class="QFrame" name="frm_calculateNdvi">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
          <property name="maximumSize">
           <size>
            <width>16777215</width>
@@ -128,10 +140,24 @@
                 </widget>
                </item>
                <item>
-                <widget class="QComboBox" name="cbx_ndvi_redLayer"/>
+                <widget class="QComboBox" name="cbx_ndvi_redLayer">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item>
-                <widget class="QListWidget" name="lstw_ndvi_redBands"/>
+                <widget class="QListWidget" name="lstw_ndvi_redBands">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -157,10 +183,24 @@
                 </widget>
                </item>
                <item>
-                <widget class="QComboBox" name="cbx_ndvi_infraredLayer"/>
+                <widget class="QComboBox" name="cbx_ndvi_infraredLayer">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item>
-                <widget class="QListWidget" name="lstw_ndvi_infraredBands"/>
+                <widget class="QListWidget" name="lstw_ndvi_infraredBands">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
