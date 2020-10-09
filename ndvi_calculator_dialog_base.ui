@@ -503,7 +503,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="cbx_agr_swir"/>
+             <widget class="QComboBox" name="cbx_agr_swirLayer"/>
             </item>
             <item>
              <widget class="QListWidget" name="lstw_agr_swirBands"/>

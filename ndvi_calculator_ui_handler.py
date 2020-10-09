@@ -35,11 +35,12 @@ from qgis.core import (QgsMapLayerRegistry,
                        QgsColorRampShader,
                        QgsSingleBandPseudoColorRenderer)
 
-from band_information import BandInformation
-from calculator_exception import CalculatorException
-from colors_for_ndvi_map import ColorsForNdviMap
-from ndvi_calculator import NdviCalculator
+from sevices.band_information import BandInformation
+from sevices.calculator_exception import CalculatorException
+from config.colors_for_ndvi_map import ColorsForNdviMap
+from sevices.ndvi_calculator import NdviCalculator
 from ndvi_calculator_dialog import ndvi_calculatorDialog
+from sevices.raster_layer_handler import RasterLayerHandler
 
 
 class ndvi_calculator_ui_handler(QObject):
@@ -205,7 +206,7 @@ class ndvi_calculator_ui_handler(QObject):
 
         layers = QgsMapLayerRegistry.instance().mapLayers()
 
-        self.showLayersListForNdvi(layers)
+        self.showLayersLists(layers)
         self.showColorSchemes()
 
         self.dlg.btn_debug.clicked.connect(self.debug_f)
@@ -215,56 +216,69 @@ class ndvi_calculator_ui_handler(QObject):
         # Run the dialog event loop
         result = self.dlg.exec_()
 
-    def showLayersListForNdvi(self, layers):
+    def showLayersLists(self, layers):
         self.dlg.cbx_ndvi_redLayer.clear()
         self.dlg.cbx_ndvi_infraredLayer.clear()
+        self.dlg.cbx_agr_swirLayer.clear()
+        self.dlg.cbx_agr_nnirLayer.clear()
+        self.dlg.cbx_agr_blueLayer.clear()
 
-        self.dlg.cbx_ndvi_redLayer.currentIndexChanged.connect(self.cbx_ndvi_redLayer_handler)
-        self.dlg.cbx_ndvi_infraredLayer.currentIndexChanged.connect(self.ccbx_ndvi_infraredLayer_handler)
+        self.dlg.cbx_ndvi_redLayer.currentIndexChanged.connect(self.showLayerBandsForNdviRed)
+        self.dlg.cbx_ndvi_infraredLayer.currentIndexChanged.connect(self.showLayerBandsForNdviInfrared)
+        self.dlg.cbx_agr_swirLayer.currentIndexChanged.connect(self.showLayerBandsForAgroSwir)
+        self.dlg.cbx_agr_nnirLayer.currentIndexChanged.connect(self.showLayerBandsForAgroNnir)
+        self.dlg.cbx_agr_blueLayer.currentIndexChanged.connect(self.showLayerBandsForAgroBlue)
 
         for name, layer in layers.iteritems():
             if layer.type() == 1:  # 1 = raster layer
                 self.dlg.cbx_ndvi_redLayer.addItem(layer.name())
                 self.dlg.cbx_ndvi_infraredLayer.addItem(layer.name())
+                self.dlg.cbx_agr_swirLayer.addItem(layer.name())
+                self.dlg.cbx_agr_nnirLayer.addItem(layer.name())
+                self.dlg.cbx_agr_blueLayer.addItem(layer.name())
 
-    def cbx_ndvi_redLayer_handler(self, index):
+    def showLayerBandsForNdviRed(self, index):
         layer_name = self.dlg.cbx_ndvi_redLayer.itemText(index)
-        try:
-            current_layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
-        except IndexError:
-            return
+        self.showLayerBands(self.dlg.lstw_ndvi_redBands, layer_name, 3)  # 3 = red
 
-        bands_dictionary = self.getBandsFromLayer(current_layer)
-        sorted(bands_dictionary)
-
-        self.dlg.lstw_ndvi_redBands.clear()
-
-        index = 0
-        for band_information in bands_dictionary.values():
-            self.dlg.lstw_ndvi_redBands.addItem(band_information.full_name)
-            if band_information.color_interpretation == 3:
-                self.dlg.lstw_ndvi_redBands.setCurrentRow(index)
-            index += 1
-
-    def ccbx_ndvi_infraredLayer_handler(self, index):
+    def showLayerBandsForNdviInfrared(self, index):
         layer_name = self.dlg.cbx_ndvi_infraredLayer.itemText(index)
+        self.showLayerBands(self.dlg.lstw_ndvi_infraredBands, layer_name, 0)  # 0 = undefined color
 
+    def showLayerBandsForAgroSwir(self, index):
+        layer_name = self.dlg.cbx_agr_swirLayer.itemText(index)
+        self.showLayerBands(self.dlg.lstw_agr_swirBands, layer_name, 0)  # 0 = undefined color
+
+    def showLayerBandsForAgroNnir(self, index):
+        layer_name = self.dlg.cbx_agr_nnirLayer.itemText(index)
+        self.showLayerBands(self.dlg.lstw_agr_nnirBands, layer_name, 0)  # 0 = undefined color
+
+    def showLayerBandsForAgroBlue(self, index):
+        layer_name = self.dlg.cbx_agr_blueLayer.itemText(index)
+        self.showLayerBands(self.dlg.lstw_agr_blueBands, layer_name, 5)  # 5 = blue
+
+    def showLayerBands(self, qListWidjet, layer_name, color_interpretation=None):
         try:
-            current_layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
+            raster_layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
         except IndexError:
             return
-
-        bands_dictionary = self.getBandsFromLayer(current_layer)
+        bands_dictionary = self.getBandsFromLayer(raster_layer)
         sorted(bands_dictionary)
 
-        self.dlg.lstw_ndvi_infraredBands.clear()
+        qListWidjet.clear()
 
         index = 0
+        band_number = None
         for band_information in bands_dictionary.values():
-            self.dlg.lstw_ndvi_infraredBands.addItem(band_information.full_name)
-            if band_information.color_interpretation == 0:
-                self.dlg.lstw_ndvi_infraredBands.setCurrentRow(index)
+            qListWidjet.addItem(band_information.full_name)
+            if band_number is None and band_information.color_interpretation == color_interpretation:
+                band_number = index
             index += 1
+
+        if band_number is not None:
+            qListWidjet.setCurrentRow(band_number)
+        else:
+            qListWidjet.setCurrentRow(0)
 
     def getBandsFromLayer(self, raster_layer):
         layer_data_provider = raster_layer.dataProvider()
@@ -461,6 +475,4 @@ class ndvi_calculator_ui_handler(QObject):
         return color_list
 
     def debug_f(self):
-        self.dlg.lbl_debug.setText(self.getCurrentLayerFromDialogWindow().name().encode("utf8").decode("utf8"))
-        with open("c:/Users/evdok/Desktop/test.txt", "w") as file2:
-            file2.write(self.getCurrentLayerFromDialogWindow().name().encode("utf8"))
+        pass
