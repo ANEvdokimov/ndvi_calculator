@@ -3,15 +3,14 @@
 import os
 
 import numpy as np
+from PIL import Image
 from PyQt4 import QtCore
 from osgeo import gdal
 from osgeo import osr
 
-from calculator_exception import CalculatorException
-
 
 class RasterLayerHandler(QtCore.QObject):
-    finished = QtCore.pyqtSignal(str)
+    finished = QtCore.pyqtSignal(bool, str, str)
 
     def __init__(self, output_path, layer_list, gdal_data_type=gdal.GDT_UInt16, gdal_driver_name=r'GTiff'):
         """
@@ -49,8 +48,8 @@ class RasterLayerHandler(QtCore.QObject):
 
         equalized_band_list = []
         for band in band_list:
-            equalized_band_list.append(np.kron(band, np.ones(
-                (max_height / band.shape[0], max_width / band.shape[1]))))
+            image = Image.fromarray(band)
+            equalized_band_list.append(np.array(image.resize((max_width, max_height))))
 
         return equalized_band_list
 
@@ -66,19 +65,21 @@ class RasterLayerHandler(QtCore.QObject):
         y_min = self.layer_list[0][0].dataProvider().extent().yMinimum()
         y_max = self.layer_list[0][0].dataProvider().extent().yMaximum()
         for layer in self.layer_list:
-            if wkt == layer[0].crs().toWkt() and \
-                    x_min == layer[0].dataProvider().extent().xMinimum() and \
-                    x_max == layer[0].dataProvider().extent().xMaximum() and \
-                    y_min == layer[0].dataProvider().extent().yMinimum() and \
-                    y_max == layer[0].dataProvider().extent().yMaximum():
-                if cell_resolution_x > layer[0].rasterUnitsPerPixelX():
-                    cell_resolution_x = layer[0].rasterUnitsPerPixelX()
-                if cell_resolution_y > layer[0].rasterUnitsPerPixelY():
-                    cell_resolution_y = layer[0].rasterUnitsPerPixelY()
+            if wkt != layer[0].crs().toWkt():
+                self.finished.emit(False, "WKT does not match", None)
+                return
 
-                band_list.append(self._layer_to_array(layer[0], layer[1]))
-            else:
-                raise CalculatorException("Merge error", "mismatched geographic locations")
+            if x_min != layer[0].dataProvider().extent().xMinimum() or \
+                    x_max != layer[0].dataProvider().extent().xMaximum() or \
+                    y_min != layer[0].dataProvider().extent().yMinimum() or \
+                    y_max != layer[0].dataProvider().extent().yMaximum():
+                self.finished.emit(False, "size does not match", None)
+
+            if cell_resolution_x > layer[0].rasterUnitsPerPixelX():
+                cell_resolution_x = layer[0].rasterUnitsPerPixelX()
+            if cell_resolution_y > layer[0].rasterUnitsPerPixelY():
+                cell_resolution_y = layer[0].rasterUnitsPerPixelY()
+            band_list.append(self._layer_to_array(layer[0], layer[1]))
 
         band_list = self._equalize_arrays(band_list)
         height, width = band_list[0].shape
@@ -101,6 +102,6 @@ class RasterLayerHandler(QtCore.QObject):
             output_band.FlushCache()
 
         if not os.path.exists(self.output_path):
-            self.finished.emit(None)
+            self.finished.emit(False, "File was not created", None)
 
-        self.finished.emit(self.output_path)
+        self.finished.emit(True, "Success", self.output_path)

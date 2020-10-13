@@ -512,12 +512,12 @@ class ndvi_calculator_ui_handler(QObject):
         color_list.append(qri(1, colors_scheme["ndvi_1"], ">0.75"))
         return color_list
 
-    def finishCalcunationAgricultureOrHv(self, output_file_name):
+    def finishCalcunationAgricultureOrHv(self, status, message, output_file_name):
         self.calculation_thread.quit()
         self.dlg.disable_load_mode()
 
-        if output_file_name is None:
-            self.dlg.show_error_message("Create file error", "Failed to create file")
+        if status is False:
+            self.dlg.show_error_message("Calculation error", message)
         else:
             self.openAgrigultureOrHvFile(output_file_name)
 
