@@ -36,6 +36,7 @@ from qgis.core import (QgsMapLayerRegistry,
                        QgsSingleBandPseudoColorRenderer)
 
 from config.colors_for_ndvi_map import ColorsForNdviMap
+from config.ndvi_threshold import NdviThreshold
 from ndvi_calculator_dialog import ndvi_calculatorDialog
 from sevices.band_information import BandInformation
 from sevices.calculator_exception import CalculatorException
@@ -324,7 +325,7 @@ class ndvi_calculator_ui_handler(QObject):
                 except CalculatorException as exp:
                     self.dlg.show_error_message(exp.title, exp.message)
                     return
-                self.outputNdviLayers(input_file_name)
+                self.openNdviFile(input_file_name)
         elif self.dlg.tabw_content.currentIndex() == 1:  # Agriculture and HV
             self.calculateAgricultureOrHv()
 
@@ -360,6 +361,7 @@ class ndvi_calculator_ui_handler(QObject):
         self.calculation_worker = RasterLayerHandler(output_file_name, layer_list)
         self.calculation_worker.moveToThread(self.calculation_thread)
         self.calculation_thread.started.connect(self.calculation_worker.merge_bands)
+        self.calculation_worker.warning.connect(self.showWarning)
         self.calculation_worker.finished.connect(self.finishCalcunationAgricultureOrHv)
         self.calculation_thread.start()
 
@@ -429,10 +431,20 @@ class ndvi_calculator_ui_handler(QObject):
     def finishCalculationNdvi(self, output_file_name):
         self.calculation_thread.quit()
         self.dlg.disable_load_mode()
-        self.outputNdviLayers(output_file_name)
+        self.openNdviFile(output_file_name)
 
-    def outputNdviLayers(self, file_name):
+    def openNdviFile(self, file_name):
         ndvi0_raster_layer = QgsRasterLayer(file_name, "NDVI - <0")
+
+        layer_data_type = ndvi0_raster_layer.dataProvider().dataType(1)
+        ndvi_thresholds = NdviThreshold().dataTypes.get(layer_data_type)
+        if ndvi_thresholds is None:
+            self.dlg.show_error_message("ndvi file open error", "unknown data type")
+            ndvi_raster_layer = QgsRasterLayer(file_name, "NDVI")
+            map_layer_registry = QgsMapLayerRegistry.instance()
+            map_layer_registry.addMapLayer(ndvi_raster_layer)
+            return
+
         ndvi025_raster_layer = QgsRasterLayer(file_name, "NDVI - 0-0.25")
         ndvi05_raster_layer = QgsRasterLayer(file_name, "NDVI - 0.25-0.5")
         ndvi075_raster_layer = QgsRasterLayer(file_name, "NDVI - 0.5-0.75")
@@ -448,15 +460,20 @@ class ndvi_calculator_ui_handler(QObject):
 
         colors_scheme = ColorsForNdviMap().getColorScheme(self.dlg.cbx_color_schemes.currentText())
         ndvi0_raster_layer.setRenderer(
-            self.getRenderer(ndvi0_raster_layer.dataProvider(), self.getColorMapForNdvi0(colors_scheme)))
+            self.getRenderer(ndvi0_raster_layer.dataProvider(),
+                             self.getColorMapForNdvi0(colors_scheme, ndvi_thresholds)))
         ndvi025_raster_layer.setRenderer(
-            self.getRenderer(ndvi025_raster_layer.dataProvider(), self.getColorMapForNdvi025(colors_scheme)))
+            self.getRenderer(ndvi025_raster_layer.dataProvider(),
+                             self.getColorMapForNdvi025(colors_scheme, ndvi_thresholds)))
         ndvi05_raster_layer.setRenderer(
-            self.getRenderer(ndvi05_raster_layer.dataProvider(), self.getColorMapForNdvi05(colors_scheme)))
+            self.getRenderer(ndvi05_raster_layer.dataProvider(),
+                             self.getColorMapForNdvi05(colors_scheme, ndvi_thresholds)))
         ndvi075_raster_layer.setRenderer(
-            self.getRenderer(ndvi075_raster_layer.dataProvider(), self.getColorMapForNdvi075(colors_scheme)))
+            self.getRenderer(ndvi075_raster_layer.dataProvider(),
+                             self.getColorMapForNdvi075(colors_scheme, ndvi_thresholds)))
         ndvi1_raster_layer.setRenderer(
-            self.getRenderer(ndvi1_raster_layer.dataProvider(), self.getColorMapForNdvi1(colors_scheme)))
+            self.getRenderer(ndvi1_raster_layer.dataProvider(),
+                             self.getColorMapForNdvi1(colors_scheme, ndvi_thresholds)))
 
         map_layer_registry = QgsMapLayerRegistry.instance()
         map_layer_registry.addMapLayer(ndvi0_raster_layer)
@@ -474,43 +491,46 @@ class ndvi_calculator_ui_handler(QObject):
         raster_shader.setRasterShaderFunction(color_ramp_shader)
         return QgsSingleBandPseudoColorRenderer(layer_data_provider, 1, raster_shader)
 
-    def getColorMapForNdvi0(self, colors_scheme):
+    def getColorMapForNdvi0(self, colors_scheme, ndvi_thresholds):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
-        color_list.append(qri(0, colors_scheme["ndvi_0"], "<0"))
-        color_list.append(qri(1, QColor(0, 0, 0, 0), ">0"))
+        color_list.append(qri(ndvi_thresholds.ndvi0, colors_scheme["ndvi_0"], "<0"))
+        color_list.append(qri(ndvi_thresholds.ndvi1, QColor(0, 0, 0, 0), ">0"))
         return color_list
 
-    def getColorMapForNdvi025(self, colors_scheme):
+    def getColorMapForNdvi025(self, colors_scheme, ndvi_thresholds):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
-        color_list.append(qri(0, QColor(0, 0, 0, 0), "<0"))
-        color_list.append(qri(0.25, colors_scheme["ndvi_0.25"], "0-0.25"))
-        color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.25"))
+        color_list.append(qri(ndvi_thresholds.ndvi0, QColor(0, 0, 0, 0), "<0"))
+        color_list.append(qri(ndvi_thresholds.ndvi025, colors_scheme["ndvi_0.25"], "0-0.25"))
+        color_list.append(qri(ndvi_thresholds.ndvi1, QColor(0, 0, 0, 0), ">0.25"))
         return color_list
 
-    def getColorMapForNdvi05(self, colors_scheme):
+    def getColorMapForNdvi05(self, colors_scheme, ndvi_thresholds):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
-        color_list.append(qri(0.25, QColor(0, 0, 0, 0), "<0.25"))
-        color_list.append(qri(0.5, colors_scheme["ndvi_0.5"], "0.25-0.5"))
-        color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.5"))
+        color_list.append(qri(ndvi_thresholds.ndvi025, QColor(0, 0, 0, 0), "<0.25"))
+        color_list.append(qri(ndvi_thresholds.ndvi05, colors_scheme["ndvi_0.5"], "0.25-0.5"))
+        color_list.append(qri(ndvi_thresholds.ndvi1, QColor(0, 0, 0, 0), ">0.5"))
         return color_list
 
-    def getColorMapForNdvi075(self, colors_scheme):
+    def getColorMapForNdvi075(self, colors_scheme, ndvi_thresholds):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
-        color_list.append(qri(0.5, QColor(0, 0, 0, 0), "<0.5"))
-        color_list.append(qri(0.75, colors_scheme["ndvi_0.75"], "0.5-0.75"))
-        color_list.append(qri(1, QColor(0, 0, 0, 0), ">0.75"))
+        color_list.append(qri(ndvi_thresholds.ndvi05, QColor(0, 0, 0, 0), "<0.5"))
+        color_list.append(qri(ndvi_thresholds.ndvi075, colors_scheme["ndvi_0.75"], "0.5-0.75"))
+        color_list.append(qri(ndvi_thresholds.ndvi1, QColor(0, 0, 0, 0), ">0.75"))
         return color_list
 
-    def getColorMapForNdvi1(self, colors_scheme):
+    def getColorMapForNdvi1(self, colors_scheme, ndvi_thresholds):
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
-        color_list.append(qri(0.75, QColor(0, 0, 0, 0), "<0.75"))
-        color_list.append(qri(1, colors_scheme["ndvi_1"], ">0.75"))
+        color_list.append(qri(ndvi_thresholds.ndvi075, QColor(0, 0, 0, 0), "<0.75"))
+        color_list.append(qri(ndvi_thresholds.ndvi1, colors_scheme["ndvi_1"], ">0.75"))
         return color_list
+
+    def showWarning(self, message):
+        self.dlg.show_error_message("warning", message)
 
     def finishCalcunationAgricultureOrHv(self, status, message, output_file_name):
         self.calculation_thread.quit()

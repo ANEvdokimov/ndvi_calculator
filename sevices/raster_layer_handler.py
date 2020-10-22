@@ -10,6 +10,7 @@ from osgeo import osr
 
 
 class RasterLayerHandler(QtCore.QObject):
+    warning = QtCore.pyqtSignal(str)
     finished = QtCore.pyqtSignal(bool, str, str)
 
     def __init__(self, output_path, layer_list, gdal_data_type=gdal.GDT_UInt16, gdal_driver_name=r'GTiff'):
@@ -73,7 +74,7 @@ class RasterLayerHandler(QtCore.QObject):
                     x_max != layer[0].dataProvider().extent().xMaximum() or \
                     y_min != layer[0].dataProvider().extent().yMinimum() or \
                     y_max != layer[0].dataProvider().extent().yMaximum():
-                self.finished.emit(False, "size does not match", None)
+                self.warning.emit("size does not match")
 
             if cell_resolution_x > layer[0].rasterUnitsPerPixelX():
                 cell_resolution_x = layer[0].rasterUnitsPerPixelX()
