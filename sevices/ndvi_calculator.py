@@ -29,7 +29,7 @@ class NdviCalculator(QtCore.QObject):
         ir.ref = self.infrared_raster_layer.name() + "@" + str(self.infrared_band_number)
 
         references = (ir.ref, r.ref, ir.ref, r.ref)
-        formula_string = "(%s - %s) / (%s + %s)" % references
+        formula_string = '("%s" - "%s") / ("%s" + "%s")' % references
 
         output_format = "GTiff"
         output_extent = self.red_raster_layer.extent()

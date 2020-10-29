@@ -434,6 +434,12 @@ class ndvi_calculator_ui_handler(QObject):
         self.openNdviFile(output_file_name)
 
     def openNdviFile(self, file_name):
+        try:
+            self.validateInputFilePath(file_name)
+        except CalculatorException as e:
+            self.dlg.show_error_message(e.title, e.message)
+            return
+
         ndvi0_raster_layer = QgsRasterLayer(file_name, "NDVI - <0")
 
         layer_data_type = ndvi0_raster_layer.dataProvider().dataType(1)
