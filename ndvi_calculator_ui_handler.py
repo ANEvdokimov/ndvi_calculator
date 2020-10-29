@@ -22,6 +22,7 @@
 """
 import collections
 import copy
+import locale
 import os.path
 import re
 
@@ -42,6 +43,8 @@ from sevices.band_information import BandInformation
 from sevices.calculator_exception import CalculatorException
 from sevices.ndvi_calculator import NdviCalculator
 from sevices.raster_layer_handler import RasterLayerHandler
+
+locale.setlocale(locale.LC_ALL, "")
 
 
 class ndvi_calculator_ui_handler(QObject):
@@ -230,13 +233,18 @@ class ndvi_calculator_ui_handler(QObject):
         self.dlg.cbx_agr_nnirLayer.currentIndexChanged.connect(self.showLayerBandsForAgroNnir)
         self.dlg.cbx_agr_blueLayer.currentIndexChanged.connect(self.showLayerBandsForAgroBlue)
 
+        layer_names = []
         for name, layer in layers.iteritems():
             if layer.type() == 1:  # 1 = raster layer
-                self.dlg.cbx_ndvi_redLayer.addItem(layer.name())
-                self.dlg.cbx_ndvi_infraredLayer.addItem(layer.name())
-                self.dlg.cbx_agr_swirLayer.addItem(layer.name())
-                self.dlg.cbx_agr_nnirLayer.addItem(layer.name())
-                self.dlg.cbx_agr_blueLayer.addItem(layer.name())
+                layer_names.append(layer.name())
+
+        layer_names.sort(cmp=locale.strcoll)
+
+        self.dlg.cbx_ndvi_redLayer.addItems(layer_names)
+        self.dlg.cbx_ndvi_infraredLayer.addItems(layer_names)
+        self.dlg.cbx_agr_swirLayer.addItems(layer_names)
+        self.dlg.cbx_agr_nnirLayer.addItems(layer_names)
+        self.dlg.cbx_agr_blueLayer.addItems(layer_names)
 
     def showLayerBandsForNdviRed(self, index):
         layer_name = self.dlg.cbx_ndvi_redLayer.itemText(index)

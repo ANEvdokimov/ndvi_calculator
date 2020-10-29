@@ -147,6 +147,9 @@
                    <height>20</height>
                   </size>
                  </property>
+                 <property name="insertPolicy">
+                  <enum>QComboBox::InsertAtBottom</enum>
+                 </property>
                 </widget>
                </item>
                <item>
