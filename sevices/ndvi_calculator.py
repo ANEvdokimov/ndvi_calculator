@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 from PyQt4 import QtCore
 from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 
@@ -7,7 +9,12 @@ from qgis.analysis import QgsRasterCalculatorEntry, QgsRasterCalculator
 class NdviCalculator(QtCore.QObject):
     finished = QtCore.pyqtSignal(str)
 
-    def __init__(self, red_raster_layer, infrared_raster_layer, red_band_number, infrared_band_number, output_file_name):
+    def __init__(self, red_raster_layer, infrared_raster_layer, red_band_number, infrared_band_number,
+                 output_file_name):
+        self.LOGGER = logging.getLogger("calculator_logger")
+
+        self.LOGGER.debug("creating NdviCalculator")
+
         QtCore.QObject.__init__(self)
         self.red_raster_layer = red_raster_layer
         self.infrared_raster_layer = infrared_raster_layer
@@ -16,6 +23,8 @@ class NdviCalculator(QtCore.QObject):
         self.output_file_name = output_file_name
 
     def run(self):
+        self.LOGGER.debug("start NDVI calculation")
+
         r = QgsRasterCalculatorEntry()
         ir = QgsRasterCalculatorEntry()
 

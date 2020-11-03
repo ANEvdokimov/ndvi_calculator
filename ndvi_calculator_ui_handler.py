@@ -25,6 +25,7 @@ import copy
 import locale
 import os.path
 import re
+import logging
 
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QThread, QObject
 from PyQt4.QtGui import QAction, QIcon, QColor, QPixmap, QPainter
@@ -62,6 +63,7 @@ class ndvi_calculator_ui_handler(QObject):
         self.calculation_thread = QThread(self)
         self.calculation_worker = None
 
+
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
@@ -86,6 +88,14 @@ class ndvi_calculator_ui_handler(QObject):
         # We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'ndvi_calculator')
         self.toolbar.setObjectName(u'ndvi_calculator')
+
+        self.LOGGER = logging.getLogger("calculator_logger")
+        format_log = "%(asctime)s - [%(levelname)s] -  %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
+        fh = logging.FileHandler(os.path.join(self.plugin_dir, "calculator.log"))
+        fh.setFormatter(logging.Formatter(format_log))
+        self.LOGGER.addHandler(fh)
+        self.LOGGER.setLevel(logging.DEBUG)
+
 
     # noinspection PyMethodMayBeStatic
     def getTranslation(self, message):
@@ -200,6 +210,7 @@ class ndvi_calculator_ui_handler(QObject):
 
     def run(self):
         """Run method that performs all the real work"""
+        logging.info("start")
         try:
             self.dlg.accepted.disconnect(self.startCalculation)
         except TypeError:
@@ -216,11 +227,15 @@ class ndvi_calculator_ui_handler(QObject):
         self.dlg.btn_debug.clicked.connect(self.debug_f)
 
         # show the dialog
+        self.LOGGER.debug("show the dialog")
         self.dlg.show()
+        self.LOGGER.debug("run the dialog event loop")
         # Run the dialog event loop
         result = self.dlg.exec_()
+        logging.info("end")
 
     def showLayersLists(self, layers):
+        self.LOGGER.debug("showing layers lists")
         self.dlg.cbx_ndvi_redLayer.clear()
         self.dlg.cbx_ndvi_infraredLayer.clear()
         self.dlg.cbx_agr_swirLayer.clear()
@@ -247,26 +262,38 @@ class ndvi_calculator_ui_handler(QObject):
         self.dlg.cbx_agr_blueLayer.addItems(layer_names)
 
     def showLayerBandsForNdviRed(self, index):
+        self.LOGGER.debug("showing bands of the red layer (NDVI)")
+
         layer_name = self.dlg.cbx_ndvi_redLayer.itemText(index)
         self.showLayerBands(self.dlg.lstw_ndvi_redBands, layer_name, 3)  # 3 = red
 
     def showLayerBandsForNdviInfrared(self, index):
+        self.LOGGER.debug("showing bands of the infrared layer (NDVI)")
+
         layer_name = self.dlg.cbx_ndvi_infraredLayer.itemText(index)
         self.showLayerBands(self.dlg.lstw_ndvi_infraredBands, layer_name, 0)  # 0 = undefined color
 
     def showLayerBandsForAgroSwir(self, index):
+        self.LOGGER.debug("showing bands of the SWIR layer (agriculture and HV)")
+
         layer_name = self.dlg.cbx_agr_swirLayer.itemText(index)
         self.showLayerBands(self.dlg.lstw_agr_swirBands, layer_name, 0)  # 0 = undefined color
 
     def showLayerBandsForAgroNnir(self, index):
+        self.LOGGER.debug("showing bands of the NNIR layer (agriculture and HV)")
+
         layer_name = self.dlg.cbx_agr_nnirLayer.itemText(index)
         self.showLayerBands(self.dlg.lstw_agr_nnirBands, layer_name, 0)  # 0 = undefined color
 
     def showLayerBandsForAgroBlue(self, index):
+        self.LOGGER.debug("showing bands of the blue layer (agriculture and HV)")
+
         layer_name = self.dlg.cbx_agr_blueLayer.itemText(index)
         self.showLayerBands(self.dlg.lstw_agr_blueBands, layer_name, 5)  # 5 = blue
 
     def showLayerBands(self, qListWidjet, layer_name, color_interpretation=None):
+        self.LOGGER.debug("showing bands of %s", layer_name)
+
         try:
             raster_layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
         except IndexError:
@@ -290,6 +317,8 @@ class ndvi_calculator_ui_handler(QObject):
             qListWidjet.setCurrentRow(0)
 
     def getBandsFromLayer(self, raster_layer):
+        self.LOGGER.debug("getting bands of %s", raster_layer.name())
+
         layer_data_provider = raster_layer.dataProvider()
 
         bands = {}
@@ -302,6 +331,8 @@ class ndvi_calculator_ui_handler(QObject):
         return collections.OrderedDict(sorted(bands.items()))
 
     def showColorSchemes(self):
+        self.LOGGER.debug("showing color schemes")
+
         self.dlg.cbx_color_schemes.clear()
         color_schemes = ColorsForNdviMap().colorSchemes
         for color_scheme_name in color_schemes:
@@ -320,6 +351,8 @@ class ndvi_calculator_ui_handler(QObject):
             self.dlg.cbx_color_schemes.addItem(icon, color_scheme_name)
 
     def startCalculation(self):
+        self.LOGGER.debug("start calculation")
+
         if self.calculation_thread.isRunning() is True:
             return
 
@@ -331,6 +364,7 @@ class ndvi_calculator_ui_handler(QObject):
                     input_file_name = self.dlg.led_ndvi_inputFile.text()
                     self.validateInputFilePath(input_file_name)
                 except CalculatorException as exp:
+                    self.LOGGER.exception(exp.message)
                     self.dlg.show_error_message(exp.title, exp.message)
                     return
                 self.openNdviFile(input_file_name)
@@ -338,6 +372,13 @@ class ndvi_calculator_ui_handler(QObject):
             self.calculateAgricultureOrHv()
 
     def calculateAgricultureOrHv(self):
+        self.LOGGER.debug("start agriculture or hv calculation")
+        self.LOGGER.debug("Agriculture: %s",  self.dlg.rbtn_agr_agriculture.isChecked())
+        self.LOGGER.debug("HV: %s",  self.dlg.rbtn_agr_hv.isChecked())
+        self.LOGGER.debug("SWIR: %s",  self.dlg.cbx_agr_swirLayer.currentText())
+        self.LOGGER.debug("NNIR: %s",  self.dlg.cbx_agr_nnirLayer.currentText())
+        self.LOGGER.debug("blue: %s",  self.dlg.cbx_agr_blueLayer.currentText())
+
         output_file_name = self.dlg.led_agr_outputFile.text()
 
         try:
@@ -350,6 +391,7 @@ class ndvi_calculator_ui_handler(QObject):
             nnir_band = self.getBandsFromLayer(nnir_layer)[self.getCurrentBandName(self.dlg.lstw_agr_nnirBands)]
             blue_band = self.getBandsFromLayer(blue_layer)[self.getCurrentBandName(self.dlg.lstw_agr_blueBands)]
         except CalculatorException as exp:
+            self.LOGGER.exception(exp.message)
             self.dlg.show_error_message(exp.title, exp.message)
             return
 
@@ -370,10 +412,12 @@ class ndvi_calculator_ui_handler(QObject):
         self.calculation_worker.moveToThread(self.calculation_thread)
         self.calculation_thread.started.connect(self.calculation_worker.merge_bands)
         self.calculation_worker.warning.connect(self.showWarning)
-        self.calculation_worker.finished.connect(self.finishCalcunationAgricultureOrHv)
+        self.calculation_worker.finished.connect(self.finishAgricultureOrHvCalculation)
         self.calculation_thread.start()
 
     def calculateNdvi(self):
+        self.LOGGER.debug("start NDVI calculation")
+
         output_file_name = self.dlg.led_ndvi_outputFile.text()
 
         try:
@@ -387,8 +431,12 @@ class ndvi_calculator_ui_handler(QObject):
             bands = self.getBandsFromLayer(infrared_layer_for_calculation)
             infrared_band = bands[self.getCurrentBandName(self.dlg.lstw_ndvi_infraredBands)]
         except CalculatorException as exp:
+            self.LOGGER.exception(exp.message)
             self.dlg.show_error_message(exp.title, exp.message)
             return
+
+        self.LOGGER.debug("red: %s", red_layer_for_calculation.name())
+        self.LOGGER.debug("IR: %s", infrared_layer_for_calculation.name())
 
         self.dlg.enable_load_mode()
 
@@ -400,28 +448,42 @@ class ndvi_calculator_ui_handler(QObject):
         self.calculation_thread.start()
 
     def getCurrentLayerWithRedBand(self):
+        self.LOGGER.debug("getting current a layer with red band")
+
         layer_name = self.dlg.cbx_ndvi_redLayer.currentText()
         return self.getLayerByName(layer_name)
 
     def getCurrentLayerWithInfraredBand(self):
+        self.LOGGER.debug("getting current a layer with IR band")
+
         layer_name = self.dlg.cbx_ndvi_infraredLayer.currentText()
         return self.getLayerByName(layer_name)
 
     def getLayerByName(self, layer_name):
+        self.LOGGER.debug("getting a layer by name: %s", layer_name)
+
         try:
             return QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
         except IndexError:
             raise CalculatorException("Layer not found", "Layer with name \"%s\" not found" % layer_name)
 
     def getCurrentBandName(self, lstw_ndv):
+        self.LOGGER.debug("getting current band name from the UI. Band name: %s", lstw_ndv.currentItem().text())
+
         return lstw_ndv.currentItem().text()
 
     def validateInputFilePath(self, file_path):
+        self.LOGGER.debug("validating input file path: %s", file_path)
+
         if not os.path.exists(file_path):
+            self.LOGGER.error("file do not exist")
             raise CalculatorException("file error", "file do not exist")
 
     def validateOutputFilePath(self, file_path):
+        self.LOGGER.debug("validating output file path: %s", file_path)
+
         if not file_path:
+            self.LOGGER.error("file path is None")
             raise CalculatorException("file error", "file path is None")
 
         file_path_copy = copy.copy(file_path)
@@ -430,21 +492,28 @@ class ndvi_calculator_ui_handler(QObject):
         try:
             file_name = pattern.search(file_path_copy.decode("utf8")).group(0)
         except AttributeError:
+            self.LOGGER.error("incorrect file name")
             raise CalculatorException("file error", "incorrect file name")
 
         directory_name = pattern.sub(u"", file_path_copy.decode("utf8"))
         if not os.path.isdir(directory_name):
+            self.LOGGER.error("incorrect directory name")
             raise CalculatorException("file error", "incorrect directory name")
 
     def finishCalculationNdvi(self, output_file_name):
+        self.LOGGER.debug("end of NDVI calculation")
+
         self.calculation_thread.quit()
         self.dlg.disable_load_mode()
         self.openNdviFile(output_file_name)
 
     def openNdviFile(self, file_name):
+        self.LOGGER.debug("opening NDVI file: %s", file_name)
+
         try:
             self.validateInputFilePath(file_name)
         except CalculatorException as e:
+            self.LOGGER.exception(e.message)
             self.dlg.show_error_message(e.title, e.message)
             return
 
@@ -453,6 +522,7 @@ class ndvi_calculator_ui_handler(QObject):
         layer_data_type = ndvi0_raster_layer.dataProvider().dataType(1)
         ndvi_thresholds = NdviThreshold().dataTypes.get(layer_data_type)
         if ndvi_thresholds is None:
+            self.LOGGER.error("unknown data type")
             self.dlg.show_error_message("ndvi file open error", "unknown data type")
             ndvi_raster_layer = QgsRasterLayer(file_name, "NDVI")
             map_layer_registry = QgsMapLayerRegistry.instance()
@@ -497,6 +567,8 @@ class ndvi_calculator_ui_handler(QObject):
         map_layer_registry.addMapLayer(ndvi1_raster_layer)
 
     def getRenderer(self, layer_data_provider, color_map):
+        self.LOGGER.debug("getting renderer")
+
         raster_shader = QgsRasterShader()
         color_ramp_shader = QgsColorRampShader()
         color_ramp_shader.setColorRampType(QgsColorRampShader.DISCRETE)
@@ -506,6 +578,8 @@ class ndvi_calculator_ui_handler(QObject):
         return QgsSingleBandPseudoColorRenderer(layer_data_provider, 1, raster_shader)
 
     def getColorMapForNdvi0(self, colors_scheme, ndvi_thresholds):
+        self.LOGGER.debug("getting color map for NDVI 0")
+
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(ndvi_thresholds.ndvi0, colors_scheme["ndvi_0"], "<0"))
@@ -513,6 +587,8 @@ class ndvi_calculator_ui_handler(QObject):
         return color_list
 
     def getColorMapForNdvi025(self, colors_scheme, ndvi_thresholds):
+        self.LOGGER.debug("getting color map for NDVI 0.25")
+
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(ndvi_thresholds.ndvi0, QColor(0, 0, 0, 0), "<0"))
@@ -521,6 +597,8 @@ class ndvi_calculator_ui_handler(QObject):
         return color_list
 
     def getColorMapForNdvi05(self, colors_scheme, ndvi_thresholds):
+        self.LOGGER.debug("getting color map for NDVI 0.5")
+
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(ndvi_thresholds.ndvi025, QColor(0, 0, 0, 0), "<0.25"))
@@ -529,6 +607,8 @@ class ndvi_calculator_ui_handler(QObject):
         return color_list
 
     def getColorMapForNdvi075(self, colors_scheme, ndvi_thresholds):
+        self.LOGGER.debug("getting color map for NDVI 0.75")
+
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(ndvi_thresholds.ndvi05, QColor(0, 0, 0, 0), "<0.5"))
@@ -537,6 +617,8 @@ class ndvi_calculator_ui_handler(QObject):
         return color_list
 
     def getColorMapForNdvi1(self, colors_scheme, ndvi_thresholds):
+        self.LOGGER.debug("getting color map for NDVI 1")
+
         color_list = []
         qri = QgsColorRampShader.ColorRampItem
         color_list.append(qri(ndvi_thresholds.ndvi075, QColor(0, 0, 0, 0), "<0.75"))
@@ -544,9 +626,13 @@ class ndvi_calculator_ui_handler(QObject):
         return color_list
 
     def showWarning(self, message):
+        self.LOGGER.debug("showing warning dialog. message: %s", message)
+
         self.dlg.show_error_message("warning", message)
 
-    def finishCalcunationAgricultureOrHv(self, status, message, output_file_name):
+    def finishAgricultureOrHvCalculation(self, status, message, output_file_name):
+        self.LOGGER.debug("end of agriculture or HV calculation")
+
         self.calculation_thread.quit()
         self.dlg.disable_load_mode()
 
@@ -556,6 +642,8 @@ class ndvi_calculator_ui_handler(QObject):
             self.openAgrigultureOrHvFile(output_file_name)
 
     def openAgrigultureOrHvFile(self, output_file_name):
+        self.LOGGER.debug("opening agriculture or HV file %s", output_file_name)
+
         if self.dlg.rbtn_agr_agriculture.isChecked():
             layer_name = "Agriculture"
         elif self.dlg.rbtn_agr_hv.isChecked():

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 
 import numpy as np
@@ -21,6 +22,10 @@ class RasterLayerHandler(QtCore.QObject):
         :param gdal_data_type:
         :param gdal_driver_name:
         """
+        self.LOGGER = logging.getLogger("calculator_logger")
+
+        self.LOGGER.debug("creating RasterLayerHandler")
+
         QtCore.QObject.__init__(self)
         self.output_path = output_path
         self.layer_list = layer_list
@@ -28,7 +33,13 @@ class RasterLayerHandler(QtCore.QObject):
         self.gdal_driver_name = gdal_driver_name
 
     def _layer_to_array(self, layer, band_number):
+        self.LOGGER.debug("converting band of QGis layer to array. layer: %s, band_number: %s", layer.name(),
+                          band_number)
+
+        self.LOGGER.debug("opening file: %s", str(layer.source()))
         dataset = gdal.Open(str(layer.source()))
+
+        self.LOGGER.debug("reading as array")
         array = dataset.ReadAsArray()
 
         if dataset.RasterCount == 1:
@@ -37,6 +48,8 @@ class RasterLayerHandler(QtCore.QObject):
             return array[band_number - 1]
 
     def _equalize_arrays(self, band_list):
+        self.LOGGER.debug("equalizing array sizes")
+
         max_width = 0
         max_height = 0
 
@@ -55,6 +68,8 @@ class RasterLayerHandler(QtCore.QObject):
         return equalized_band_list
 
     def merge_bands(self):
+        self.LOGGER.debug("merging bands to one file")
+
         osr.UseExceptions()
 
         band_list = []
@@ -68,12 +83,14 @@ class RasterLayerHandler(QtCore.QObject):
         for layer in self.layer_list:
             if wkt != layer[0].crs().toWkt():
                 self.finished.emit(False, "WKT does not match", None)
+                self.LOGGER.error("WKT does not match")
                 return
 
             if x_min != layer[0].dataProvider().extent().xMinimum() or \
                     x_max != layer[0].dataProvider().extent().xMaximum() or \
                     y_min != layer[0].dataProvider().extent().yMinimum() or \
                     y_max != layer[0].dataProvider().extent().yMaximum():
+                self.LOGGER.error("size does not match")
                 self.warning.emit("size does not match")
 
             if cell_resolution_x > layer[0].rasterUnitsPerPixelX():
@@ -83,9 +100,13 @@ class RasterLayerHandler(QtCore.QObject):
             band_list.append(self._layer_to_array(layer[0], layer[1]))
 
         band_list = self._equalize_arrays(band_list)
+
         height, width = band_list[0].shape
 
+        self.LOGGER.debug("getting driver by name: self.gdal_driver_name")
         driver = gdal.GetDriverByName(self.gdal_driver_name)
+
+        self.LOGGER.debug("creating output_raster")
         output_raster = driver.Create(self.output_path,
                                       width,
                                       height,
@@ -103,6 +124,7 @@ class RasterLayerHandler(QtCore.QObject):
             output_band.FlushCache()
 
         if not os.path.exists(self.output_path):
+            self.LOGGER.error("File %s was not created", self.output_path)
             self.finished.emit(False, "File was not created", None)
 
         self.finished.emit(True, "Success", self.output_path)
