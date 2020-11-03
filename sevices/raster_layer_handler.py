@@ -124,7 +124,7 @@ class RasterLayerHandler(QtCore.QObject):
             output_band.FlushCache()
 
         if not os.path.exists(self.output_path):
-            self.LOGGER.error("File %s was not created", self.output_path)
+            self.LOGGER.info("File %s was not created", self.output_path)
             self.finished.emit(False, "File was not created", None)
 
         self.finished.emit(True, "Success", self.output_path)

@@ -27,4 +27,3 @@ class NdviThreshold:
             self.ndvi05 = ndvi05
             self.ndvi075 = ndvi075
             self.ndvi1 = ndvi1
-

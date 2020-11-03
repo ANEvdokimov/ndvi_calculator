@@ -23,9 +23,10 @@
 import collections
 import copy
 import locale
+import logging
 import os.path
 import re
-import logging
+from logging.handlers import RotatingFileHandler
 
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QThread, QObject
 from PyQt4.QtGui import QAction, QIcon, QColor, QPixmap, QPainter
@@ -63,7 +64,6 @@ class ndvi_calculator_ui_handler(QObject):
         self.calculation_thread = QThread(self)
         self.calculation_worker = None
 
-
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
@@ -90,12 +90,15 @@ class ndvi_calculator_ui_handler(QObject):
         self.toolbar.setObjectName(u'ndvi_calculator')
 
         self.LOGGER = logging.getLogger("calculator_logger")
-        format_log = "%(asctime)s - [%(levelname)s] -  %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
-        fh = logging.FileHandler(os.path.join(self.plugin_dir, "calculator.log"))
-        fh.setFormatter(logging.Formatter(format_log))
-        self.LOGGER.addHandler(fh)
-        self.LOGGER.setLevel(logging.DEBUG)
-
+        if len(self.LOGGER.handlers) == 0:
+            format_log = \
+                "%(asctime)s - [%(levelname)s] -  %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
+            fh = RotatingFileHandler(filename=os.path.join(self.plugin_dir, "calculator.log"),
+                                     maxBytes=5 * 1024 * 1024,
+                                     backupCount=5)
+            fh.setFormatter(logging.Formatter(format_log))
+            self.LOGGER.addHandler(fh)
+            self.LOGGER.setLevel(logging.DEBUG)
 
     # noinspection PyMethodMayBeStatic
     def getTranslation(self, message):
@@ -164,6 +167,7 @@ class ndvi_calculator_ui_handler(QObject):
 
         # Create the dialog (after translation) and keep reference
         self.dlg = ndvi_calculatorDialog()
+        self.initHandlers()
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -208,23 +212,27 @@ class ndvi_calculator_ui_handler(QObject):
         # remove the toolbar
         del self.toolbar
 
+    def initHandlers(self):
+        self.LOGGER.debug("init handlers")
+
+        self.dlg.accepted.connect(self.startCalculation)
+
+        self.dlg.cbx_ndvi_redLayer.currentIndexChanged.connect(self.showLayerBandsForNdviRed)
+        self.dlg.cbx_ndvi_infraredLayer.currentIndexChanged.connect(self.showLayerBandsForNdviInfrared)
+        self.dlg.cbx_agr_swirLayer.currentIndexChanged.connect(self.showLayerBandsForAgroSwir)
+        self.dlg.cbx_agr_nnirLayer.currentIndexChanged.connect(self.showLayerBandsForAgroNnir)
+        self.dlg.cbx_agr_blueLayer.currentIndexChanged.connect(self.showLayerBandsForAgroBlue)
+
+        self.dlg.btn_debug.clicked.connect(self.debug_f)
+
     def run(self):
         """Run method that performs all the real work"""
         logging.info("start")
-        try:
-            self.dlg.accepted.disconnect(self.startCalculation)
-        except TypeError:
-            # if the TypeError was thrown, then there was not the connection (at first start)
-            pass
-
-        self.dlg.accepted.connect(self.startCalculation)
 
         layers = QgsMapLayerRegistry.instance().mapLayers()
 
         self.showLayersLists(layers)
         self.showColorSchemes()
-
-        self.dlg.btn_debug.clicked.connect(self.debug_f)
 
         # show the dialog
         self.LOGGER.debug("show the dialog")
@@ -236,17 +244,12 @@ class ndvi_calculator_ui_handler(QObject):
 
     def showLayersLists(self, layers):
         self.LOGGER.debug("showing layers lists")
+
         self.dlg.cbx_ndvi_redLayer.clear()
         self.dlg.cbx_ndvi_infraredLayer.clear()
         self.dlg.cbx_agr_swirLayer.clear()
         self.dlg.cbx_agr_nnirLayer.clear()
         self.dlg.cbx_agr_blueLayer.clear()
-
-        self.dlg.cbx_ndvi_redLayer.currentIndexChanged.connect(self.showLayerBandsForNdviRed)
-        self.dlg.cbx_ndvi_infraredLayer.currentIndexChanged.connect(self.showLayerBandsForNdviInfrared)
-        self.dlg.cbx_agr_swirLayer.currentIndexChanged.connect(self.showLayerBandsForAgroSwir)
-        self.dlg.cbx_agr_nnirLayer.currentIndexChanged.connect(self.showLayerBandsForAgroNnir)
-        self.dlg.cbx_agr_blueLayer.currentIndexChanged.connect(self.showLayerBandsForAgroBlue)
 
         layer_names = []
         for name, layer in layers.iteritems():
@@ -364,7 +367,7 @@ class ndvi_calculator_ui_handler(QObject):
                     input_file_name = self.dlg.led_ndvi_inputFile.text()
                     self.validateInputFilePath(input_file_name)
                 except CalculatorException as exp:
-                    self.LOGGER.exception(exp.message)
+                    self.LOGGER.info(exp.message)
                     self.dlg.show_error_message(exp.title, exp.message)
                     return
                 self.openNdviFile(input_file_name)
@@ -372,12 +375,12 @@ class ndvi_calculator_ui_handler(QObject):
             self.calculateAgricultureOrHv()
 
     def calculateAgricultureOrHv(self):
-        self.LOGGER.debug("start agriculture or hv calculation")
-        self.LOGGER.debug("Agriculture: %s",  self.dlg.rbtn_agr_agriculture.isChecked())
-        self.LOGGER.debug("HV: %s",  self.dlg.rbtn_agr_hv.isChecked())
-        self.LOGGER.debug("SWIR: %s",  self.dlg.cbx_agr_swirLayer.currentText())
-        self.LOGGER.debug("NNIR: %s",  self.dlg.cbx_agr_nnirLayer.currentText())
-        self.LOGGER.debug("blue: %s",  self.dlg.cbx_agr_blueLayer.currentText())
+        self.LOGGER.info("start agriculture or hv calculation")
+        self.LOGGER.info("Agriculture: %s", self.dlg.rbtn_agr_agriculture.isChecked())
+        self.LOGGER.info("HV: %s", self.dlg.rbtn_agr_hv.isChecked())
+        self.LOGGER.info("SWIR: %s", self.dlg.cbx_agr_swirLayer.currentText())
+        self.LOGGER.info("NNIR: %s", self.dlg.cbx_agr_nnirLayer.currentText())
+        self.LOGGER.info("blue: %s", self.dlg.cbx_agr_blueLayer.currentText())
 
         output_file_name = self.dlg.led_agr_outputFile.text()
 
@@ -391,7 +394,7 @@ class ndvi_calculator_ui_handler(QObject):
             nnir_band = self.getBandsFromLayer(nnir_layer)[self.getCurrentBandName(self.dlg.lstw_agr_nnirBands)]
             blue_band = self.getBandsFromLayer(blue_layer)[self.getCurrentBandName(self.dlg.lstw_agr_blueBands)]
         except CalculatorException as exp:
-            self.LOGGER.exception(exp.message)
+            self.LOGGER.info(exp.message)
             self.dlg.show_error_message(exp.title, exp.message)
             return
 
@@ -416,7 +419,11 @@ class ndvi_calculator_ui_handler(QObject):
         self.calculation_thread.start()
 
     def calculateNdvi(self):
-        self.LOGGER.debug("start NDVI calculation")
+        self.LOGGER.info("start NDVI calculation")
+        self.LOGGER.info("red: %s", self.dlg.cbx_ndvi_redLayer.currentText())
+        self.LOGGER.info("red band number: %s", self.dlg.lstw_ndvi_redBands.currentItem().text())
+        self.LOGGER.info("IR: %s", self.dlg.cbx_ndvi_infraredLayer.currentText())
+        self.LOGGER.info("IR band number: %s", self.dlg.lstw_ndvi_infraredBands.currentText())
 
         output_file_name = self.dlg.led_ndvi_outputFile.text()
 
@@ -431,12 +438,9 @@ class ndvi_calculator_ui_handler(QObject):
             bands = self.getBandsFromLayer(infrared_layer_for_calculation)
             infrared_band = bands[self.getCurrentBandName(self.dlg.lstw_ndvi_infraredBands)]
         except CalculatorException as exp:
-            self.LOGGER.exception(exp.message)
+            self.LOGGER.info(exp.message)
             self.dlg.show_error_message(exp.title, exp.message)
             return
-
-        self.LOGGER.debug("red: %s", red_layer_for_calculation.name())
-        self.LOGGER.debug("IR: %s", infrared_layer_for_calculation.name())
 
         self.dlg.enable_load_mode()
 
@@ -476,14 +480,14 @@ class ndvi_calculator_ui_handler(QObject):
         self.LOGGER.debug("validating input file path: %s", file_path)
 
         if not os.path.exists(file_path):
-            self.LOGGER.error("file do not exist")
+            self.LOGGER.info("input file - file do not exist")
             raise CalculatorException("file error", "file do not exist")
 
     def validateOutputFilePath(self, file_path):
         self.LOGGER.debug("validating output file path: %s", file_path)
 
         if not file_path:
-            self.LOGGER.error("file path is None")
+            self.LOGGER.info("output file - file path is None")
             raise CalculatorException("file error", "file path is None")
 
         file_path_copy = copy.copy(file_path)
@@ -492,12 +496,12 @@ class ndvi_calculator_ui_handler(QObject):
         try:
             file_name = pattern.search(file_path_copy).group(0)
         except AttributeError:
-            self.LOGGER.error("incorrect file name")
+            self.LOGGER.info("output file - incorrect file name")
             raise CalculatorException("file error", "incorrect file name")
 
         directory_name = pattern.sub(u"", file_path_copy)
         if not os.path.isdir(directory_name):
-            self.LOGGER.error("incorrect directory name")
+            self.LOGGER.info("output file - incorrect directory name")
             raise CalculatorException("file error", "incorrect directory name")
 
     def finishCalculationNdvi(self, output_file_name):
@@ -508,12 +512,12 @@ class ndvi_calculator_ui_handler(QObject):
         self.openNdviFile(output_file_name)
 
     def openNdviFile(self, file_name):
-        self.LOGGER.debug("opening NDVI file: %s", file_name)
+        self.LOGGER.info("opening NDVI file: %s", file_name)
 
         try:
             self.validateInputFilePath(file_name)
         except CalculatorException as e:
-            self.LOGGER.exception(e.message)
+            self.LOGGER.info(e.message)
             self.dlg.show_error_message(e.title, e.message)
             return
 
@@ -522,7 +526,7 @@ class ndvi_calculator_ui_handler(QObject):
         layer_data_type = ndvi0_raster_layer.dataProvider().dataType(1)
         ndvi_thresholds = NdviThreshold().dataTypes.get(layer_data_type)
         if ndvi_thresholds is None:
-            self.LOGGER.error("unknown data type")
+            self.LOGGER.info("NDVI file - unknown data type")
             self.dlg.show_error_message("ndvi file open error", "unknown data type")
             ndvi_raster_layer = QgsRasterLayer(file_name, "NDVI")
             map_layer_registry = QgsMapLayerRegistry.instance()
@@ -639,10 +643,10 @@ class ndvi_calculator_ui_handler(QObject):
         if status is False:
             self.dlg.show_error_message("Calculation error", message)
         else:
-            self.openAgrigultureOrHvFile(output_file_name)
+            self.openAgricultureOrHvFile(output_file_name)
 
-    def openAgrigultureOrHvFile(self, output_file_name):
-        self.LOGGER.debug("opening agriculture or HV file %s", output_file_name)
+    def openAgricultureOrHvFile(self, output_file_name):
+        self.LOGGER.info("opening agriculture or HV file %s", output_file_name)
 
         if self.dlg.rbtn_agr_agriculture.isChecked():
             layer_name = "Agriculture"
