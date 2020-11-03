@@ -490,12 +490,12 @@ class ndvi_calculator_ui_handler(QObject):
         pattern = re.compile(ur"/(?u)\w+.tif$")
 
         try:
-            file_name = pattern.search(file_path_copy.decode("utf8")).group(0)
+            file_name = pattern.search(file_path_copy).group(0)
         except AttributeError:
             self.LOGGER.error("incorrect file name")
             raise CalculatorException("file error", "incorrect file name")
 
-        directory_name = pattern.sub(u"", file_path_copy.decode("utf8"))
+        directory_name = pattern.sub(u"", file_path_copy)
         if not os.path.isdir(directory_name):
             self.LOGGER.error("incorrect directory name")
             raise CalculatorException("file error", "incorrect directory name")

@@ -36,8 +36,8 @@ class RasterLayerHandler(QtCore.QObject):
         self.LOGGER.debug("converting band of QGis layer to array. layer: %s, band_number: %s", layer.name(),
                           band_number)
 
-        self.LOGGER.debug("opening file: %s", str(layer.source()))
-        dataset = gdal.Open(str(layer.source()))
+        self.LOGGER.debug("opening file: %s", unicode(layer.source()))
+        dataset = gdal.Open(unicode(layer.source()))
 
         self.LOGGER.debug("reading as array")
         array = dataset.ReadAsArray()
