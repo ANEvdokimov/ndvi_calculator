@@ -240,7 +240,7 @@ class ndvi_calculator_ui_handler(QObject):
         self.LOGGER.debug("run the dialog event loop")
         # Run the dialog event loop
         result = self.dlg.exec_()
-        logging.info("end")
+        self.LOGGER.info("end")
 
     def showLayersLists(self, layers):
         self.LOGGER.debug("showing layers lists")
@@ -378,6 +378,14 @@ class ndvi_calculator_ui_handler(QObject):
         self.LOGGER.info("start agriculture or hv calculation")
         self.LOGGER.info("Agriculture: %s", self.dlg.rbtn_agr_agriculture.isChecked())
         self.LOGGER.info("HV: %s", self.dlg.rbtn_agr_hv.isChecked())
+
+        if self.dlg.cbx_agr_swirLayer.count() == 0 or \
+                self.dlg.cbx_agr_nnirLayer.count() == 0 or \
+                self.dlg.cbx_agr_blueLayer.count() == 0:
+            self.LOGGER.info("Layers not found")
+            self.dlg.show_error_message("error", "layers not found")
+            return
+
         self.LOGGER.info("SWIR: %s", self.dlg.cbx_agr_swirLayer.currentText())
         self.LOGGER.info("NNIR: %s", self.dlg.cbx_agr_nnirLayer.currentText())
         self.LOGGER.info("blue: %s", self.dlg.cbx_agr_blueLayer.currentText())
@@ -420,6 +428,13 @@ class ndvi_calculator_ui_handler(QObject):
 
     def calculateNdvi(self):
         self.LOGGER.info("start NDVI calculation")
+
+        if self.dlg.cbx_ndvi_redLayer.count() == 0 or \
+                self.dlg.cbx_ndvi_infraredLayer.count() == 0:
+            self.LOGGER.info("Layers not found")
+            self.dlg.show_error_message("error", "layers not found")
+            return
+
         self.LOGGER.info("red: %s", self.dlg.cbx_ndvi_redLayer.currentText())
         self.LOGGER.info("red band number: %s", self.dlg.lstw_ndvi_redBands.currentItem().text())
         self.LOGGER.info("IR: %s", self.dlg.cbx_ndvi_infraredLayer.currentText())
