@@ -223,8 +223,6 @@ class ndvi_calculator_ui_handler(QObject):
         self.dlg.cbx_agr_nnirLayer.currentIndexChanged.connect(self.showLayerBandsForAgroNnir)
         self.dlg.cbx_agr_blueLayer.currentIndexChanged.connect(self.showLayerBandsForAgroBlue)
 
-        self.dlg.btn_debug.clicked.connect(self.debug_f)
-
     def run(self):
         """Run method that performs all the real work"""
         logging.info("start")
@@ -438,7 +436,7 @@ class ndvi_calculator_ui_handler(QObject):
         self.LOGGER.info("red: %s", self.dlg.cbx_ndvi_redLayer.currentText())
         self.LOGGER.info("red band number: %s", self.dlg.lstw_ndvi_redBands.currentItem().text())
         self.LOGGER.info("IR: %s", self.dlg.cbx_ndvi_infraredLayer.currentText())
-        self.LOGGER.info("IR band number: %s", self.dlg.lstw_ndvi_infraredBands.currentText())
+        self.LOGGER.info("IR band number: %s", self.dlg.lstw_ndvi_infraredBands.currentItem().text)
 
         output_file_name = self.dlg.led_ndvi_outputFile.text()
 
@@ -673,6 +671,3 @@ class ndvi_calculator_ui_handler(QObject):
         raster_layer = QgsRasterLayer(output_file_name, layer_name)
         map_layer_registry = QgsMapLayerRegistry.instance()
         map_layer_registry.addMapLayer(raster_layer)
-
-    def debug_f(self):
-        pass
