@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>NDVI Calculator</string>
+   <string>Vegetation сalculator</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_6">
    <item>
@@ -27,6 +27,9 @@
        <width>0</width>
        <height>0</height>
       </size>
+     </property>
+     <property name="whatsThis">
+      <string/>
      </property>
      <property name="currentIndex">
       <number>0</number>
@@ -38,8 +41,11 @@
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
         <widget class="QRadioButton" name="rbtn_calculateNdvi">
+         <property name="whatsThis">
+          <string>Рассчитать NDVI на основе фотографии с БЛА или космического аппарата</string>
+         </property>
          <property name="text">
-          <string>Расчитать NDVI</string>
+          <string>Рассчитать NDVI</string>
          </property>
          <property name="checked">
           <bool>true</bool>
@@ -90,6 +96,9 @@
               <height>16777215</height>
              </size>
             </property>
+            <property name="whatsThis">
+             <string>Каналы растрового изображения</string>
+            </property>
             <property name="title">
              <string>Каналы растров</string>
             </property>
@@ -122,6 +131,9 @@
                    <height>16777215</height>
                   </size>
                  </property>
+                 <property name="whatsThis">
+                  <string>Красный канал для расчета NDVI</string>
+                 </property>
                  <property name="text">
                   <string>Красный</string>
                  </property>
@@ -135,6 +147,12 @@
                    <height>20</height>
                   </size>
                  </property>
+                 <property name="toolTip">
+                  <string/>
+                 </property>
+                 <property name="whatsThis">
+                  <string>Изображение, содержащее красный канал</string>
+                 </property>
                  <property name="insertPolicy">
                   <enum>QComboBox::InsertAtBottom</enum>
                  </property>
@@ -147,6 +165,9 @@
                    <width>0</width>
                    <height>0</height>
                   </size>
+                 </property>
+                 <property name="whatsThis">
+                  <string>Красный канал изображения</string>
                  </property>
                 </widget>
                </item>
@@ -168,6 +189,9 @@
                    <height>16777215</height>
                   </size>
                  </property>
+                 <property name="whatsThis">
+                  <string>Инфракрасный канал для расчета NDVI</string>
+                 </property>
                  <property name="text">
                   <string>Инфракрасный</string>
                  </property>
@@ -181,6 +205,9 @@
                    <height>20</height>
                   </size>
                  </property>
+                 <property name="whatsThis">
+                  <string>Изображение, содержащее инфракрасный канал</string>
+                 </property>
                 </widget>
                </item>
                <item>
@@ -190,6 +217,9 @@
                    <width>0</width>
                    <height>0</height>
                   </size>
+                 </property>
+                 <property name="whatsThis">
+                  <string>Инфракрасный канал изображения</string>
                  </property>
                 </widget>
                </item>
@@ -245,6 +275,9 @@
                  <height>23</height>
                 </size>
                </property>
+               <property name="whatsThis">
+                <string>Файл, куда будет сохранен результат</string>
+               </property>
                <property name="lineWidth">
                 <number>0</number>
                </property>
@@ -254,7 +287,11 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="led_ndvi_outputFile"/>
+              <widget class="QLineEdit" name="led_ndvi_outputFile">
+               <property name="whatsThis">
+                <string>Файл, куда будет сохранен результат</string>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QPushButton" name="btn_ndvi_outputFile">
@@ -270,6 +307,9 @@
                  <height>23</height>
                 </size>
                </property>
+               <property name="whatsThis">
+                <string>Диалоговое окно выбора файла для сохранения</string>
+               </property>
                <property name="text">
                 <string>...</string>
                </property>
@@ -283,6 +323,9 @@
        </item>
        <item>
         <widget class="QRadioButton" name="rbtn_openNdviFile">
+         <property name="whatsThis">
+          <string>Открыть одноканальное изображение с рассчитанным NDVI</string>
+         </property>
          <property name="text">
           <string>Открыть файл с рассчитанным NDVI</string>
          </property>
@@ -344,6 +387,9 @@
                  <height>23</height>
                 </size>
                </property>
+               <property name="whatsThis">
+                <string>Файл с рассчитанным NDVI</string>
+               </property>
                <property name="lineWidth">
                 <number>0</number>
                </property>
@@ -353,7 +399,11 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="led_ndvi_inputFile"/>
+              <widget class="QLineEdit" name="led_ndvi_inputFile">
+               <property name="whatsThis">
+                <string>Файл с рассчитанным NDVI</string>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QPushButton" name="btn_ndvi_inputFile">
@@ -368,6 +418,9 @@
                  <width>40</width>
                  <height>23</height>
                 </size>
+               </property>
+               <property name="whatsThis">
+                <string>Диалоговое окно выбора файла для открытия</string>
                </property>
                <property name="text">
                 <string>...</string>
@@ -384,13 +437,13 @@
         <widget class="QFrame" name="frm_ndvi_colors">
          <property name="minimumSize">
           <size>
-           <width>250</width>
+           <width>220</width>
            <height>23</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>250</width>
+           <width>220</width>
            <height>23</height>
           </size>
          </property>
@@ -436,6 +489,9 @@
               <height>23</height>
              </size>
             </property>
+            <property name="whatsThis">
+             <string>Цвета, обозначающие разные значения NDVI</string>
+            </property>
             <property name="text">
              <string>Цветовая схема</string>
             </property>
@@ -455,6 +511,9 @@
               <height>20</height>
              </size>
             </property>
+            <property name="whatsThis">
+             <string>Цвета, обозначающие разные значения NDVI</string>
+            </property>
             <property name="iconSize">
              <size>
               <width>50</width>
@@ -470,15 +529,18 @@
      </widget>
      <widget class="QWidget" name="tab_agriculture">
       <attribute name="title">
-       <string>Agriculture and Healthy Vegetation</string>
+       <string>Агрокультура и здоровая растительность</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
           <widget class="QRadioButton" name="rbtn_agr_agriculture">
+           <property name="whatsThis">
+            <string>Индекс &quot;Агрокультура&quot;</string>
+           </property>
            <property name="text">
-            <string>Agriculture</string>
+            <string>Агрокультура</string>
            </property>
            <property name="checked">
             <bool>true</bool>
@@ -487,8 +549,11 @@
          </item>
          <item>
           <widget class="QRadioButton" name="rbtn_agr_hv">
+           <property name="whatsThis">
+            <string>Индекс &quot;Здоровая растительность&quot;</string>
+           </property>
            <property name="text">
-            <string>Healthy Vegetation</string>
+            <string>Здоровая растительность</string>
            </property>
           </widget>
          </item>
@@ -504,6 +569,9 @@
            <width>16777215</width>
            <height>16777215</height>
           </size>
+         </property>
+         <property name="whatsThis">
+          <string>Каналы растрового изображения</string>
          </property>
          <property name="title">
           <string>Каналы растров</string>
@@ -528,16 +596,27 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="whatsThis">
+               <string>Канал, отвечающий за коротковолновый инфракрасный</string>
+              </property>
               <property name="text">
-               <string>SWIR</string>
+               <string>Коротковолновый ИК</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="cbx_agr_swirLayer"/>
+             <widget class="QComboBox" name="cbx_agr_swirLayer">
+              <property name="whatsThis">
+               <string>Изображение с коротким инфракрасным каналом</string>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QListWidget" name="lstw_agr_swirBands"/>
+             <widget class="QListWidget" name="lstw_agr_swirBands">
+              <property name="whatsThis">
+               <string>Канал, отвечающий за коротковолновый инфракрасный</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -557,16 +636,27 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="whatsThis">
+               <string>Канал, отвечающий за инфракрасный</string>
+              </property>
               <property name="text">
-               <string> Narrow NIR</string>
+               <string>Инфракрасный</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="cbx_agr_nnirLayer"/>
+             <widget class="QComboBox" name="cbx_agr_nnirLayer">
+              <property name="whatsThis">
+               <string>Изображение с инфракрасным каналом </string>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QListWidget" name="lstw_agr_nnirBands"/>
+             <widget class="QListWidget" name="lstw_agr_nnirBands">
+              <property name="whatsThis">
+               <string>Канал, отвечающий за инфракрасный</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -586,16 +676,27 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="whatsThis">
+               <string>Канал, отвечающий за синий</string>
+              </property>
               <property name="text">
-               <string>Blue</string>
+               <string>Синий</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="cbx_agr_blueLayer"/>
+             <widget class="QComboBox" name="cbx_agr_blueLayer">
+              <property name="whatsThis">
+               <string>Изображение с синим каналом</string>
+              </property>
+             </widget>
             </item>
             <item>
-             <widget class="QListWidget" name="lstw_agr_blueBands"/>
+             <widget class="QListWidget" name="lstw_agr_blueBands">
+              <property name="whatsThis">
+               <string>Канал, отвечающий за синий</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -649,6 +750,9 @@
               <height>23</height>
              </size>
             </property>
+            <property name="whatsThis">
+             <string>Файл, куда будет сохранен результат</string>
+            </property>
             <property name="lineWidth">
              <number>0</number>
             </property>
@@ -658,7 +762,11 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="led_agr_outputFile"/>
+           <widget class="QLineEdit" name="led_agr_outputFile">
+            <property name="whatsThis">
+             <string>Файл, куда будет сохранен результат</string>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QPushButton" name="btn_agr_outputFile">
@@ -673,6 +781,9 @@
               <width>40</width>
               <height>23</height>
              </size>
+            </property>
+            <property name="whatsThis">
+             <string>Диалоговое окно выбора файла для сохранения</string>
             </property>
             <property name="text">
              <string>...</string>
