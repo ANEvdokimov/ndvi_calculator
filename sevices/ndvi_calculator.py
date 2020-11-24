@@ -11,6 +11,26 @@ class NdviCalculator(QtCore.QObject):
 
     def __init__(self, red_raster_layer, infrared_raster_layer, red_band_number, infrared_band_number,
                  output_file_name):
+        """
+        NDVI calculator
+        Calculates NDVI based on the QgsRasterCalculator.
+
+        :param red_raster_layer: QgsRasterLayer with a red band.
+        :type: QgsRasterLayer
+
+        :param infrared_raster_layer: QgsRasterLayer with a infrared band.
+        :type: QgsRasterLayer
+
+        :param red_band_number: A number of a red band in the red_raster_layer.
+        :type: int
+
+        :param infrared_band_number: A number of a infrared band in the infrared_raster_layer.
+        :type: int
+
+        :param output_file_name: Path to a file to save the calculation results.
+        :type: unicode
+        """
+
         self.LOGGER = logging.getLogger("calculator_logger")
 
         self.LOGGER.debug("creating NdviCalculator")
@@ -23,6 +43,11 @@ class NdviCalculator(QtCore.QObject):
         self.output_file_name = output_file_name
 
     def run(self):
+        """
+        Start of calculation.
+        A GTiff-file is created in the process.
+        """
+
         self.LOGGER.debug("start NDVI calculation")
 
         r = QgsRasterCalculatorEntry()

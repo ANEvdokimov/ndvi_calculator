@@ -16,11 +16,18 @@ class RasterLayerHandler(QtCore.QObject):
 
     def __init__(self, output_path, layer_list, gdal_data_type=gdal.GDT_UInt16, gdal_driver_name=r'GTiff'):
         """
-        :param output_path:
+        Service for combining several raster layers into a separate file.
+
+        :param output_path: Path to a file to save the combination results.
+        :type: unicode
+
         :param layer_list:  list of (QgsRasterLayer, band_number), band_number: the number of the band to be extracted
          to combine with others into one file.
-        :param gdal_data_type:
-        :param gdal_driver_name:
+        :type: [(QgsRasterLayer, int), ...]
+
+        :param gdal_data_type: GDAL data type for a creating a result file.
+
+        :param gdal_driver_name: GDAL driver name for a creating a result file.
         """
         self.LOGGER = logging.getLogger("calculator_logger")
 
@@ -33,6 +40,19 @@ class RasterLayerHandler(QtCore.QObject):
         self.gdal_driver_name = gdal_driver_name
 
     def _layer_to_array(self, layer, band_number):
+        """
+        Convert a band of QgsRasterLayer to array.
+
+        :param layer: A layer to convert.
+        :type: QgsRasterLayer
+
+        :param band_number: A number of the band
+        :type: int
+
+        :return: A converted layer.
+        :type: two-dimensional array
+        """
+
         self.LOGGER.debug("converting band of QGis layer to array. layer: %s, band_number: %s", layer.name(),
                           band_number)
 
@@ -48,11 +68,24 @@ class RasterLayerHandler(QtCore.QObject):
             return array[band_number - 1]
 
     def _equalize_arrays(self, band_list):
+        """
+        Equalize the sizes of two arrays.
+        A smaller array is stretched to a larger size.
+        The ratio of the number of rows and columns must be the same for all arrays.
+
+        :param band_list: A List of bands to equalize.
+        :type: list of two-dimensional arrays
+
+        :return: Equalized bands.
+        :type: list of two-dimensional arrays
+        """
+
         self.LOGGER.debug("equalizing array sizes")
 
         max_width = 0
         max_height = 0
 
+        # getting max width and height
         for band in band_list:
             height, width = band.shape
             if height > max_height:
@@ -60,6 +93,7 @@ class RasterLayerHandler(QtCore.QObject):
             if width > max_width:
                 max_width = width
 
+        # stretching all bands to maximum size
         equalized_band_list = []
         for band in band_list:
             image = Image.fromarray(band)
@@ -67,7 +101,12 @@ class RasterLayerHandler(QtCore.QObject):
 
         return equalized_band_list
 
-    def merge_bands(self):
+    def combine_bands(self):
+        """
+        Start combining the bands.
+        A file is created in the process.
+        """
+
         self.LOGGER.debug("merging bands to one file")
 
         osr.UseExceptions()
@@ -86,6 +125,7 @@ class RasterLayerHandler(QtCore.QObject):
                 self.LOGGER.info("WKT does not match")
                 return
 
+            # location comparison
             if x_min != layer[0].dataProvider().extent().xMinimum() or \
                     x_max != layer[0].dataProvider().extent().xMaximum() or \
                     y_min != layer[0].dataProvider().extent().yMinimum() or \
@@ -93,10 +133,12 @@ class RasterLayerHandler(QtCore.QObject):
                 self.LOGGER.info("size does not match")
                 self.warning.emit("size does not match")
 
+            # finding the highest resolution
             if cell_resolution_x > layer[0].rasterUnitsPerPixelX():
                 cell_resolution_x = layer[0].rasterUnitsPerPixelX()
             if cell_resolution_y > layer[0].rasterUnitsPerPixelY():
                 cell_resolution_y = layer[0].rasterUnitsPerPixelY()
+
             band_list.append(self._layer_to_array(layer[0], layer[1]))
 
         band_list = self._equalize_arrays(band_list)
