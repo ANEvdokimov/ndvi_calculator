@@ -31,5 +31,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgisInterface
     """
     #
-    from .ndvi_calculator_ui_handler import ndvi_calculator_ui_handler
-    return ndvi_calculator_ui_handler(iface)
+    from .v_calculator_main import v_calculator_main
+    return v_calculator_main(iface)

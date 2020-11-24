@@ -3,7 +3,7 @@
 /***************************************************************************
  ndvi_calculator
                                  A QGIS plugin
- NDVI calculator
+ Vegetation calculator
                               -------------------
         begin                : 2020-07-28
         git sha              : $Format:%H$
@@ -40,7 +40,7 @@ from qgis.core import (QgsMapLayerRegistry,
 
 from config.colors_for_ndvi_map import ColorsForNdviMap
 from config.ndvi_threshold import NdviThreshold
-from ndvi_calculator_dialog import ndvi_calculatorDialog
+from v_calculator_dialog import vegetation_calculatorDialog
 from sevices.band_information import BandInformation
 from sevices.calculator_exception import CalculatorException
 from sevices.ndvi_calculator import NdviCalculator
@@ -49,7 +49,7 @@ from sevices.raster_layer_handler import RasterLayerHandler
 locale.setlocale(locale.LC_ALL, "")
 
 
-class ndvi_calculator_ui_handler(QObject):
+class v_calculator_main(QObject):
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -60,7 +60,7 @@ class ndvi_calculator_ui_handler(QObject):
             application at run time.
         :type iface: QgisInterface
         """
-        super(ndvi_calculator_ui_handler, self).__init__()
+        super(v_calculator_main, self).__init__()
         self.calculation_thread = QThread(self)
         self.calculation_worker = None
 
@@ -73,7 +73,7 @@ class ndvi_calculator_ui_handler(QObject):
         locale_path = os.path.join(
             self.plugin_dir,
             'i18n',
-            'ndvi_calculator_{}.qm'.format(locale))
+            'vegetation_calculator_{}.qm'.format(locale))
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -84,10 +84,10 @@ class ndvi_calculator_ui_handler(QObject):
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.getTranslation(u'&NDVI Calculator')
+        self.menu = self.getTranslation(u'&Vegetation Calculator')
         # We are going to let the user set this up in a future iteration
-        self.toolbar = self.iface.addToolBar(u'ndvi_calculator')
-        self.toolbar.setObjectName(u'ndvi_calculator')
+        self.toolbar = self.iface.addToolBar(u'vegetation_calculator')
+        self.toolbar.setObjectName(u'vegetation_calculator')
 
         self.LOGGER = logging.getLogger("calculator_logger")
         if len(self.LOGGER.handlers) == 0:
@@ -166,7 +166,7 @@ class ndvi_calculator_ui_handler(QObject):
         """
 
         # Create the dialog (after translation) and keep reference
-        self.dlg = ndvi_calculatorDialog()
+        self.dlg = vegetation_calculatorDialog()
         self.initHandlers()
 
         icon = QIcon(icon_path)
@@ -198,7 +198,7 @@ class ndvi_calculator_ui_handler(QObject):
         icon_path = os.path.join(self.plugin_dir, 'icon.png')
         self.add_action(
             icon_path,
-            text=self.getTranslation(u'Calculate NDVI'),
+            text=self.getTranslation(u'Open calculator'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -206,7 +206,7 @@ class ndvi_calculator_ui_handler(QObject):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginRasterMenu(
-                self.getTranslation(u'&NDVI Calculator'),
+                self.getTranslation(u'&Vegetation Calculator'),
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar

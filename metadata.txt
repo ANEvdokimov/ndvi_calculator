@@ -7,14 +7,14 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=NDVI Calculator
+name=Vegetation calculator
 qgisMinimumVersion=2.0
-description=NDVI calculator
+description=Vegetation calculator
 version=0.1
 author=AN Evdokimov
 email=an.evdokimov@inbox.ru
 
-about=Данный плагин предназначен для расчета NDVI (нормализованный относительный индекс растительности) на основе космических или аэрофотографий.
+about=Данный плагин предназначен для расчета вегетационных индексов (NDVI, агрокультура и здоровая растительность) на основе космических или аэрофотографий.
 
 tracker=http://bugs_tr
 repository=http://repo
