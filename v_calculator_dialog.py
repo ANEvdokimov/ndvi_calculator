@@ -50,24 +50,42 @@ class vegetation_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         self.prb_loading.setVisible(False)
 
     def handler_btn_ndvi_outputFile(self):
+        """
+        Show NDVI file save dialog.
+        """
         users_home_directory = os.path.expanduser("~")
         file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif",
                                                                  directory=users_home_directory)[0]
         self.led_ndvi_outputFile.setText(file_name)
 
     def handler_btn_agr_outputFile(self):
+        """
+        Show agriculture of healthy vegetation file save dialog.
+        """
         users_home_directory = os.path.expanduser("~")
         file_name = QtGui.QFileDialog().getSaveFileNameAndFilter(self, "Save file", filter="*.tif",
                                                                  directory=users_home_directory)[0]
         self.led_agr_outputFile.setText(file_name)
 
     def handler_btn_ndvi_inputFile(self):
+        """
+        Show file open dialog.
+        """
         users_home_directory = os.path.expanduser("~")
         file_name = QtGui.QFileDialog().getOpenFileNameAndFilter(self, "Open file", filter="*.tif",
                                                                  directory=users_home_directory)[0]
         self.led_ndvi_inputFile.setText(file_name)
 
     def show_error_message(self, error_title, error_message):
+        """
+        Show error window.
+
+        :param error_title: title for window.
+        :type: unicode
+
+        :param error_message: error message.
+        :type: unicode
+        """
         message_box = QtGui.QMessageBox()
         message_box.setText(error_message)
         message_box.setWindowTitle(error_title)
@@ -75,16 +93,25 @@ class vegetation_calculatorDialog(QtGui.QDialog, FORM_CLASS):
         message_box.exec_()
 
     def enable_load_mode(self):
+        """
+        Block interface.
+        """
         self.tabw_content.setEnabled(False)
         self.button_box.button(QtGui.QDialogButtonBox.Ok).setEnabled(False)
         self.prb_loading.setVisible(True)
 
     def disable_load_mode(self):
+        """
+        Unlock interface.
+        """
         self.tabw_content.setEnabled(True)
         self.button_box.button(QtGui.QDialogButtonBox.Ok).setEnabled(True)
         self.prb_loading.setVisible(False)
 
     def change_ndvi_calculation_mode(self):
+        """
+        Unblock file opening and block calculation or vice versa.
+        """
         if self.rbtn_calculateNdvi.isChecked():
             self.frm_calculateNdvi.setEnabled(True)
             self.frm_openNdviFile.setEnabled(False)
@@ -93,4 +120,7 @@ class vegetation_calculatorDialog(QtGui.QDialog, FORM_CLASS):
             self.frm_openNdviFile.setEnabled(True)
 
     def accept(self):
+        """
+        Handler for OK button
+        """
         self.accepted.emit()
