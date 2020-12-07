@@ -263,13 +263,13 @@
     </message>
     <message>
         <location filename="v_calculator_main.py" line="117"/>
-        <source>WKT does not match</source>
-        <translation>WKT не совпадает</translation>
+        <source>Location does not match</source>
+        <translation>Расположение не совпадает</translation>
     </message>
     <message>
         <location filename="v_calculator_main.py" line="117"/>
         <source>Image sizes does not match</source>
-        <translation>Размеры изображений не совпадает</translation>
+        <translation>Размеры изображений не совпадают</translation>
     </message>
     <message>
         <location filename="v_calculator_main.py" line="117"/>

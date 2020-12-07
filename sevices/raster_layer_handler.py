@@ -112,7 +112,7 @@ class RasterLayerHandler(QtCore.QObject):
         osr.UseExceptions()
 
         band_list = []
-        wkt = self.layer_list[0][0].crs().toWkt()
+        crs = self.layer_list[0][0].crs()
         cell_resolution_x = self.layer_list[0][0].rasterUnitsPerPixelX()
         cell_resolution_y = self.layer_list[0][0].rasterUnitsPerPixelY()
         x_min = self.layer_list[0][0].dataProvider().extent().xMinimum()
@@ -120,9 +120,9 @@ class RasterLayerHandler(QtCore.QObject):
         y_min = self.layer_list[0][0].dataProvider().extent().yMinimum()
         y_max = self.layer_list[0][0].dataProvider().extent().yMaximum()
         for layer in self.layer_list:
-            if wkt != layer[0].crs().toWkt():
-                self.finished.emit(False, "WKT does not match", None)
-                self.LOGGER.warning("WKT does not match")
+            if crs != layer[0].crs():
+                self.finished.emit(False, "Location does not match", None)
+                self.LOGGER.warning("location does not match")
                 return
 
             # location comparison
@@ -131,7 +131,8 @@ class RasterLayerHandler(QtCore.QObject):
                     y_min != layer[0].dataProvider().extent().yMinimum() or \
                     y_max != layer[0].dataProvider().extent().yMaximum():
                 self.LOGGER.warning("size does not match")
-                self.warning("Image sizes does not match")
+                self.finished.emit(False, "Image sizes does not match", None)
+                return
 
             # finding the highest resolution
             if cell_resolution_x > layer[0].rasterUnitsPerPixelX():
@@ -141,6 +142,7 @@ class RasterLayerHandler(QtCore.QObject):
 
             band_list.append(self._layer_to_array(layer[0], layer[1]))
 
+        wkt = crs.toWkt()
         band_list = self._equalize_arrays(band_list)
 
         height, width = band_list[0].shape
