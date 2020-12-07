@@ -40,11 +40,11 @@ from qgis.core import (QgsMapLayerRegistry,
 
 from config.colors_for_ndvi_map import ColorsForNdviMap
 from config.ndvi_threshold import NdviThreshold
-from v_calculator_dialog import vegetation_calculatorDialog
 from sevices.band_information import BandInformation
 from sevices.calculator_exception import CalculatorException
 from sevices.ndvi_calculator import NdviCalculator
 from sevices.raster_layer_handler import RasterLayerHandler
+from v_calculator_dialog import vegetation_calculatorDialog
 
 locale.setlocale(locale.LC_ALL, "")
 
@@ -84,7 +84,7 @@ class v_calculator_main(QObject):
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.getTranslation(u'&Vegetation Calculator')
+        self.menu = self.getTranslation(u'&Vegetation calculator')
         # We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'vegetation_calculator')
         self.toolbar.setObjectName(u'vegetation_calculator')
@@ -113,7 +113,7 @@ class v_calculator_main(QObject):
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('ndvi_calculator', message)
+        return QCoreApplication.translate('v_calculator_main', message)
 
     def add_action(
             self,
@@ -206,7 +206,7 @@ class v_calculator_main(QObject):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginRasterMenu(
-                self.getTranslation(u'&Vegetation Calculator'),
+                self.getTranslation(u'&Vegetation calculator'),
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
@@ -443,7 +443,7 @@ class v_calculator_main(QObject):
                     self.validateInputFilePath(input_file_name)
                 except CalculatorException as exp:
                     self.LOGGER.info(exp.message)
-                    self.dlg.show_error_message(exp.title, exp.message)
+                    self.dlg.show_error_message(self.getTranslation(exp.title), self.getTranslation(exp.message))
                     return
                 self.openNdviFile(input_file_name)
         elif self.dlg.tabw_content.currentIndex() == 1:  # Agriculture and HV
@@ -462,7 +462,7 @@ class v_calculator_main(QObject):
                 self.dlg.cbx_agr_nnirLayer.count() == 0 or \
                 self.dlg.cbx_agr_blueLayer.count() == 0:
             self.LOGGER.info("Layers not found")
-            self.dlg.show_error_message("error", "layers not found")
+            self.dlg.show_error_message(self.getTranslation("Error"), self.getTranslation("Layers not found"))
             return
 
         self.LOGGER.info("SWIR: %s", self.dlg.cbx_agr_swirLayer.currentText())
@@ -482,7 +482,7 @@ class v_calculator_main(QObject):
             blue_band = self.getBandsFromLayer(blue_layer)[self.getCurrentBandName(self.dlg.lstw_agr_blueBands)]
         except CalculatorException as exp:
             self.LOGGER.info(exp.message)
-            self.dlg.show_error_message(exp.title, exp.message)
+            self.dlg.show_error_message(self.getTranslation(exp.title), self.getTranslation(exp.message))
             return
 
         if self.dlg.rbtn_agr_agriculture.isChecked():
@@ -515,7 +515,7 @@ class v_calculator_main(QObject):
         if self.dlg.cbx_ndvi_redLayer.count() == 0 or \
                 self.dlg.cbx_ndvi_infraredLayer.count() == 0:
             self.LOGGER.info("Layers not found")
-            self.dlg.show_error_message("error", "layers not found")
+            self.dlg.show_error_message(self.getTranslation("Error"), self.getTranslation("Layers not found"))
             return
 
         self.LOGGER.info("red: %s", self.dlg.cbx_ndvi_redLayer.currentText())
@@ -537,7 +537,7 @@ class v_calculator_main(QObject):
             infrared_band = bands[self.getCurrentBandName(self.dlg.lstw_ndvi_infraredBands)]
         except CalculatorException as exp:
             self.LOGGER.info(exp.message)
-            self.dlg.show_error_message(exp.title, exp.message)
+            self.dlg.show_error_message(self.getTranslation(exp.title), self.getTranslation(exp.message))
             return
 
         self.dlg.enable_load_mode()
@@ -552,6 +552,8 @@ class v_calculator_main(QObject):
     def getCurrentLayerWithRedBand(self):
         """
         Get user selected layer with red band.
+
+        :raise CalculatorException: layer with this name not found
         """
 
         self.LOGGER.debug("getting current a layer with red band")
@@ -562,6 +564,8 @@ class v_calculator_main(QObject):
     def getCurrentLayerWithInfraredBand(self):
         """
         Get user selected layer with infrared band.
+
+        :raise CalculatorException: layer with this name not found
         """
 
         self.LOGGER.debug("getting current a layer with IR band")
@@ -587,7 +591,7 @@ class v_calculator_main(QObject):
         try:
             return QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
         except IndexError:
-            raise CalculatorException("Layer not found", "Layer with name \"%s\" not found" % layer_name)
+            raise CalculatorException("Layer not found", "One of the specified layers was not found")
 
     def getCurrentBandName(self, lstw_ndv):
         """
@@ -618,7 +622,7 @@ class v_calculator_main(QObject):
 
         if not os.path.exists(file_path):
             self.LOGGER.info("input file - file do not exist")
-            raise CalculatorException("file error", "file do not exist")
+            raise CalculatorException("File error", "File does not exist")
 
     def validateOutputFilePath(self, file_path):
         """
@@ -634,7 +638,7 @@ class v_calculator_main(QObject):
 
         if not file_path:
             self.LOGGER.info("output file - file path is None")
-            raise CalculatorException("file error", "file path is None")
+            raise CalculatorException("File error", "File path is empty")
 
         file_path_copy = copy.copy(file_path)
         pattern = re.compile(ur"/(?u)\w+.tif$")
@@ -643,12 +647,12 @@ class v_calculator_main(QObject):
             file_name = pattern.search(file_path_copy).group(0)
         except AttributeError:
             self.LOGGER.info("output file - incorrect file name")
-            raise CalculatorException("file error", "incorrect file name")
+            raise CalculatorException("File error", "Incorrect file name")
 
         directory_name = pattern.sub(u"", file_path_copy)
         if not os.path.isdir(directory_name):
             self.LOGGER.info("output file - incorrect directory name")
-            raise CalculatorException("file error", "incorrect directory name")
+            raise CalculatorException("File error", "Incorrect directory name")
 
     def finishCalculationNdvi(self, output_file_name):
         """
@@ -681,7 +685,7 @@ class v_calculator_main(QObject):
             self.validateInputFilePath(file_name)
         except CalculatorException as e:
             self.LOGGER.info(e.message)
-            self.dlg.show_error_message(e.title, e.message)
+            self.dlg.show_error_message(self.getTranslation(e.title), self.getTranslation(e.message))
             return
 
         ndvi0_raster_layer = QgsRasterLayer(file_name, "NDVI - <0")
@@ -690,7 +694,8 @@ class v_calculator_main(QObject):
         ndvi_thresholds = NdviThreshold().dataTypes.get(layer_data_type)
         if ndvi_thresholds is None:
             self.LOGGER.info("NDVI file - unknown data type")
-            self.dlg.show_error_message("ndvi file open error", "unknown data type")
+            self.dlg.show_error_message(self.getTranslation("NDVI file open error"),
+                                        self.getTranslation("Unknown data type"))
             ndvi_raster_layer = QgsRasterLayer(file_name, "NDVI")
             map_layer_registry = QgsMapLayerRegistry.instance()
             map_layer_registry.addMapLayer(ndvi_raster_layer)
@@ -879,7 +884,7 @@ class v_calculator_main(QObject):
 
         self.LOGGER.debug("showing warning dialog. message: %s", message)
 
-        self.dlg.show_error_message("warning", message)
+        self.dlg.show_error_message(self.getTranslation("Warning"), self.getTranslation(message))
 
     def finishAgricultureOrHvCalculation(self, status, message, output_file_name):
         """
@@ -898,7 +903,7 @@ class v_calculator_main(QObject):
         self.dlg.disable_load_mode()
 
         if status is False:
-            self.dlg.show_error_message("Calculation error", message)
+            self.dlg.show_error_message(self.getTranslation("Calculation error"), self.getTranslation(message))
         else:
             self.openAgricultureOrHvFile(output_file_name)
 

@@ -189,4 +189,97 @@
         <translation>Вегетационный калькулятор</translation>
     </message>
 </context>
+<context>
+    <name>v_calculator_main</name>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Error</source>
+        <translation>Ошибка</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Vegetation calculator</source>
+        <translation>Вегетационный калькулятор</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Open calculator</source>
+        <translation>Открыть калькулятор</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Layers not found</source>
+        <translation>Слои не найдены</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Layer not found</source>
+        <translation>Слой не найден</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>NDVI file open error</source>
+        <translation>Ошибка открытия файла с NDVI</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Unknown data type</source>
+        <translation>Неизвестный формат данных</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Warning</source>
+        <translation>Предупреждение</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Calculation error</source>
+        <translation>Ошибка расчета</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>File error</source>
+        <translation>ошибка открытия файла</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>File does not exist</source>
+        <translation>Файл не существует</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>File path is empty</source>
+        <translation>Путь к файлу пустой</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Incorrect file name</source>
+        <translation>Некорректное имя файла</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Incorrect directory name</source>
+        <translation>Некорректное имя директории</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>WKT does not match</source>
+        <translation>WKT не совпадает</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Image sizes does not match</source>
+        <translation>Размеры изображений не совпадает</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>Result file was not created</source>
+        <translation>Файл с результатами не был создан</translation>
+    </message>
+    <message>
+        <location filename="v_calculator_main.py" line="117"/>
+        <source>One of the specified layers was not found</source>
+        <translation>Один из указанных слоев не найден</translation>
+    </message>
+</context>
 </TS>

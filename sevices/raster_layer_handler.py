@@ -122,7 +122,7 @@ class RasterLayerHandler(QtCore.QObject):
         for layer in self.layer_list:
             if wkt != layer[0].crs().toWkt():
                 self.finished.emit(False, "WKT does not match", None)
-                self.LOGGER.info("WKT does not match")
+                self.LOGGER.warning("WKT does not match")
                 return
 
             # location comparison
@@ -130,8 +130,8 @@ class RasterLayerHandler(QtCore.QObject):
                     x_max != layer[0].dataProvider().extent().xMaximum() or \
                     y_min != layer[0].dataProvider().extent().yMinimum() or \
                     y_max != layer[0].dataProvider().extent().yMaximum():
-                self.LOGGER.info("size does not match")
-                self.warning.emit("size does not match")
+                self.LOGGER.warning("size does not match")
+                self.warning("Image sizes does not match")
 
             # finding the highest resolution
             if cell_resolution_x > layer[0].rasterUnitsPerPixelX():
@@ -166,7 +166,7 @@ class RasterLayerHandler(QtCore.QObject):
             output_band.FlushCache()
 
         if not os.path.exists(self.output_path):
-            self.LOGGER.warning("File %s was not created", self.output_path)
-            self.finished.emit(False, "File was not created", None)
+            self.LOGGER.warning("result file was not created", self.output_path)
+            self.finished.emit(False, "Result file was not created", None)
 
         self.finished.emit(True, "Success", self.output_path)
